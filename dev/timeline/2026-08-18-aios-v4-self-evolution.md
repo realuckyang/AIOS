@@ -105,3 +105,7 @@ npm start
 进 `dev/lib`;`dev/test` 指向已删除的旧 server,一并移除。
 
 **没带的**:`etc/config.json`(含密钥,gitignore)、`var/`、`run/`、构建产物。
+
+**仓库快照**:AGENT 仓库连同完整 git 历史存档为本目录的 `AGENT-2026-08-18.zip`
+(git clone 出的干净副本,只含已提交内容;入档前全历史扫描过密钥形状与真实网关
+地址,零命中)。解压即得可用仓库,与最古老的 `meeem.zip` 同列。
