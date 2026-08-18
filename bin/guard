@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# 默认发行的灾难命令策略(userland)。内核只提供钩子:执行 bash 前调用本脚本,
+# 参数 $1 = 完整命令;exit 0 放行,非 0 拒绝(stdout 作为给模型的理由)。
+# 这不是沙箱,只拦明显毁掉整台机器的命令字面。agent 可改,人类可在 etc/config.json 换掉或移除。
+cmd="$1"
+
+deny() { echo "命令被 guard 策略拦截($1)。这不是权限系统;若确有必要请让人类手动执行或调整 bin/guard。"; exit 1; }
+
+echo "$cmd" | grep -qE 'rm[[:space:]]+(-[a-zA-Z]*r[a-zA-Z]*f|-[a-zA-Z]*f[a-zA-Z]*r)[a-zA-Z]*[[:space:]]+("?/"?|\$HOME|~)[[:space:]/*]*$' && deny '递归删除根目录或用户目录'
+echo "$cmd" | grep -qE '\bmkfs(\.[a-z0-9]+)?\b' && deny '格式化文件系统'
+echo "$cmd" | grep -qE '\bdd\b[^|;&]*\bof=/dev/(sd|hd|nvme|disk)' && deny '直接覆写块设备'
+echo "$cmd" | grep -qE ':\(\)[[:space:]]*\{[[:space:]]*:[[:space:]]*\|[[:space:]]*:[[:space:]]*&[[:space:]]*\}[[:space:]]*;[[:space:]]*:' && deny 'fork bomb'
+echo "$cmd" | grep -qE 'chmod[[:space:]]+(-[a-zA-Z]*R[a-zA-Z]*[[:space:]]+)?(777|a\+rwx)[[:space:]]+/[[:space:]]*$' && deny '将根目录改为任何人可写'
+
+exit 0

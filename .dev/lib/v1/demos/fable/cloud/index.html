@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AGENT · cloud</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="shell panel-open" id="shell">
+
+  <aside class="sidebar">
+    <a class="brand" href="index.html"><span class="brand-mark"></span><span class="brand-name">AGENT</span></a>
+    <a class="side-item" href="new.html"><span class="ic">＋</span>新对话</a>
+    <button class="side-item"><span class="ic">⌕</span>搜索</button>
+    <div class="side-label">对话</div>
+    <nav class="chat-list">
+      <button class="chat-row active">
+        <span class="title">迁移 SQLite schema</span>
+        <span class="delete-chat">×</span>
+      </button>
+      <button class="chat-row">
+        <span class="dot running"></span>
+        <span class="title">修复 SSE 断线重连</span>
+        <span class="delete-chat">×</span>
+      </button>
+      <button class="chat-row">
+        <span class="title">重构事件订阅</span>
+        <span class="delete-chat">×</span>
+      </button>
+      <button class="chat-row">
+        <span class="title">整理仓库文档</span>
+        <span class="delete-chat">×</span>
+      </button>
+    </nav>
+    <a class="side-item settings-link" href="settings.html"><span class="ic">⚙</span>设置</a>
+  </aside>
+
+  <section class="workspace">
+    <header class="header">
+      <h1>迁移 SQLite schema</h1>
+      <div class="header-actions">
+        <button class="panel-toggle active" id="panelToggle">执行对话</button>
+      </div>
+    </header>
+
+    <main class="thread">
+      <div class="thread-inner">
+
+        <details class="compaction">
+          <summary><span class="chevron">▶</span>较早上下文已压缩 · items 1–60</summary>
+          <p>此前已确认 schema.sql 与线上数据库存在差异:calls 表缺少 completed_at 列。已决定采用增量迁移,不重建数据库,迁移文件统一放在 server/repository/migrations 下。</p>
+        </details>
+
+        <div class="message user">
+          <div class="bubble">给 calls 表加 <code>completed_at</code> 字段,老数据用 <code>created_at</code> 回填。迁移脚本放在 server/repository 下,schema.sql 也要同步更新。</div>
+        </div>
+
+        <details class="reasoning">
+          <summary><span class="chevron">▶</span>查看思考过程</summary>
+          <p>schema.sql 可能落后于线上库,先读取真实的表结构再决定迁移语句。回填只应覆盖已结束的调用,pending 和 running 状态的行保持 NULL。</p>
+        </details>
+
+        <details class="tool-card">
+          <summary class="tool-head">
+            <span class="tool-ic">›_</span>
+            <span class="tool-copy"><b>查看 calls 表当前结构</b><small>bash · 完成</small></span>
+            <span class="chevron">▶</span>
+          </summary>
+          <code>sqlite3 data/agent.db '.schema calls'</code>
+          <pre>CREATE TABLE calls (
+  id TEXT PRIMARY KEY,
+  chat_id TEXT NOT NULL,
+  to_chat_id TEXT,
+  status TEXT NOT NULL DEFAULT 'pending',
+  created_at INTEGER NOT NULL
+);</pre>
+        </details>
+
+        <div class="agent-label">Agent</div>
+        <div class="answer">当前 calls 表没有 <code>completed_at</code> 列。我先写迁移脚本,执行后按 <code>created_at</code> 回填已结束的调用,最后核对仍为 NULL 的行。</div>
+
+        <details class="tool-card">
+          <summary class="tool-head">
+            <span class="tool-ic">›_</span>
+            <span class="tool-copy"><b>写入迁移脚本</b><small>bash · 完成</small></span>
+            <span class="chevron">▶</span>
+          </summary>
+          <code>cat &gt; server/repository/migrations/001-completed-at.sql &lt;&lt;'EOF'
+ALTER TABLE calls ADD COLUMN completed_at INTEGER;
+UPDATE calls SET completed_at = created_at
+  WHERE status IN ('completed', 'failed', 'cancelled');
+EOF</code>
+          <pre class="empty">无输出</pre>
+        </details>
+
+        <details class="tool-card">
+          <summary class="tool-head">
+            <span class="tool-ic">›_</span>
+            <span class="tool-copy"><b>执行迁移并统计回填行数</b><small>bash · 完成</small></span>
+            <span class="chevron">▶</span>
+          </summary>
+          <code>sqlite3 data/agent.db &lt; server/repository/migrations/001-completed-at.sql \
+  &amp;&amp; sqlite3 data/agent.db 'SELECT COUNT(*) FROM calls WHERE completed_at IS NOT NULL'</code>
+          <pre>128</pre>
+        </details>
+
+        <details class="tool-card" open>
+          <summary class="tool-head">
+            <span class="tool-ic">›_</span>
+            <span class="tool-copy"><b>核对未回填的行</b><small>bash · 完成</small></span>
+            <span class="chevron">▶</span>
+          </summary>
+          <code>sqlite3 data/agent.db 'SELECT status, COUNT(*) FROM calls GROUP BY status'</code>
+          <pre>cancelled|9
+completed|96
+failed|23
+pending|3
+running|1</pre>
+        </details>
+
+        <div class="agent-label">Agent</div>
+        <div class="answer">
+          <p>迁移完成。128 条已结束的调用按 <code>created_at</code> 回填,仍为 NULL 的 4 行都处于未结束状态,符合预期:</p>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr><th>状态</th><th>行数</th><th>completed_at</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>completed</td><td>96</td><td>= created_at</td></tr>
+                <tr><td>failed</td><td>23</td><td>= created_at</td></tr>
+                <tr><td>cancelled</td><td>9</td><td>= created_at</td></tr>
+                <tr><td>pending</td><td>3</td><td>NULL</td></tr>
+                <tr><td>running</td><td>1</td><td>NULL</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p>schema.sql 已同步更新,迁移文件如下。需要的话可以继续为 completed_at 补一个索引。</p>
+        </div>
+
+        <div class="artifact">
+          <span class="tool-ic">≡</span>
+          <span class="tool-copy"><b>001-completed-at.sql</b><small>server/repository/migrations</small></span>
+          <button class="view">查看</button>
+        </div>
+
+      </div>
+    </main>
+
+    <div class="composer-wrap">
+      <div class="composer">
+        <textarea rows="1" placeholder="交给 Agent 一个任务"></textarea>
+        <div class="composer-bar">
+          <span class="model-chip">deepseek-v4-flash</span>
+          <span class="usage">$0.0412 · 18,432 tokens · 41%</span>
+          <span class="spacer"></span>
+          <a class="icon-btn" href="settings.html" title="设置">⚙</a>
+          <button class="send-button" title="发送">↑</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <aside class="call-panel">
+    <div class="panel-head">
+      <b>执行对话</b>
+      <span class="panel-count">3</span>
+      <button class="panel-close" id="panelClose">×</button>
+    </div>
+    <div class="panel-body">
+
+      <div class="target-list" id="targetList">
+        <button class="target-row" data-detail="detail-tests">
+          <span class="status-dot running"></span>
+          <span class="target-copy">
+            <b>回归测试 repository 层</b>
+            <small><span class="call-state running">running</span> · 刚刚创建</small>
+          </span>
+          <em>›</em>
+        </button>
+        <button class="target-row" data-detail="detail-items">
+          <span class="status-dot completed"></span>
+          <span class="target-copy">
+            <b>分析 items 表体积</b>
+            <small><span class="call-state completed">completed</span> · 3 分钟前</small>
+          </span>
+          <em>›</em>
+        </button>
+        <button class="target-row" data-detail="detail-docs">
+          <span class="status-dot failed"></span>
+          <span class="target-copy">
+            <b>更新 docs/schema.sql</b>
+            <small><span class="call-state failed">failed</span> · 12 分钟前</small>
+            <span class="call-error">模型请求超时</span>
+          </span>
+          <em>›</em>
+        </button>
+      </div>
+
+      <div class="target-detail" id="detail-tests" hidden>
+        <button class="back">‹ 返回</button>
+        <div class="target-title"><h3>回归测试 repository 层</h3><span class="chip running">running</span></div>
+        <div class="target-meta">调用 call_9f2c · 创建于 14:03</div>
+        <div class="target-stream">
+          <div class="message user">
+            <div class="bubble">运行 server/repository 的全部单元测试,失败的用例逐个给出原因。</div>
+          </div>
+          <details class="tool-card" open>
+            <summary class="tool-head">
+              <span class="tool-ic">›_</span>
+              <span class="tool-copy"><b>运行 repository 测试</b><small class="busy">bash · 执行中</small></span>
+              <span class="chevron">▶</span>
+            </summary>
+            <code>node --test server/repository/*.test.js</code>
+          </details>
+        </div>
+        <div class="follow">
+          <textarea rows="1" placeholder="发送后续消息"></textarea>
+          <button class="stop-button" title="停止">■</button>
+        </div>
+      </div>
+
+      <div class="target-detail" id="detail-items" hidden>
+        <button class="back">‹ 返回</button>
+        <div class="target-title"><h3>分析 items 表体积</h3><span class="chip completed">completed</span></div>
+        <div class="target-meta">调用 call_8d1a · 创建于 14:00 · 完成于 14:04</div>
+        <div class="target-stream">
+          <div class="message user">
+            <div class="bubble">统计 items 表各类型的行数与体积,评估压缩收益。</div>
+          </div>
+          <details class="tool-card">
+            <summary class="tool-head">
+              <span class="tool-ic">›_</span>
+              <span class="tool-copy"><b>按类型统计行数与字节数</b><small>bash · 完成</small></span>
+              <span class="chevron">▶</span>
+            </summary>
+            <code>sqlite3 data/agent.db "SELECT json_extract(item,'$.type') AS t, COUNT(*), SUM(LENGTH(item)) FROM items GROUP BY t"</code>
+            <pre>message|1204|2417880
+reasoning|986|6530112
+function_call|1011|1893204
+function_call_output|1012|8721544</pre>
+          </details>
+          <div class="agent-label">Agent</div>
+          <div class="answer">items 表共 4,213 行,约 18.6 MB。reasoning 与 function_call_output 合计约占 82%,按当前压缩水位预计可释放约 40% 的上下文。</div>
+        </div>
+        <div class="follow">
+          <textarea rows="1" placeholder="发送后续消息"></textarea>
+          <button class="send-button" title="发送">↑</button>
+        </div>
+      </div>
+
+      <div class="target-detail" id="detail-docs" hidden>
+        <button class="back">‹ 返回</button>
+        <div class="target-title"><h3>更新 docs/schema.sql</h3><span class="chip failed">failed</span></div>
+        <div class="target-meta">调用 call_7b3e · 创建于 13:52</div>
+        <div class="target-stream">
+          <div class="message user">
+            <div class="bubble">把 docs/schema.sql 同步为最新的表结构。</div>
+          </div>
+          <div class="error-banner">模型请求超时</div>
+        </div>
+        <div class="follow">
+          <textarea rows="1" placeholder="发送消息以重试"></textarea>
+          <button class="send-button" title="发送">↑</button>
+        </div>
+      </div>
+
+    </div>
+  </aside>
+
+</div>
+<script src="app.js"></script>
+</body>
+</html>

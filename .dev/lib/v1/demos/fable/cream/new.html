@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AGENT · cream · 新对话</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="shell" id="shell">
+
+  <aside class="sidebar">
+    <a class="brand" href="index.html"><span class="brand-mark">A</span><span class="brand-name">AGENT</span></a>
+    <a class="new-chat" href="new.html"><i>＋</i>新对话</a>
+    <div class="sidebar-label">对话</div>
+    <nav class="chat-list">
+      <button class="chat-row active">
+        <span class="status-dot"></span>
+        <span class="chat-copy"><b>新对话</b></span>
+        <span class="delete-chat">×</span>
+      </button>
+      <button class="chat-row">
+        <span class="status-dot running"></span>
+        <span class="chat-copy"><b>迁移 SQLite schema</b><small>为 calls 表增加 completed_at</small></span>
+        <span class="delete-chat">×</span>
+      </button>
+      <button class="chat-row">
+        <span class="status-dot"></span>
+        <span class="chat-copy"><b>修复 SSE 断线重连</b><small>gap 事件后全量刷新</small></span>
+        <span class="delete-chat">×</span>
+      </button>
+      <button class="chat-row">
+        <span class="status-dot"></span>
+        <span class="chat-copy"><b>重构事件订阅</b><small>单条 SSE 连接统一分发</small></span>
+        <span class="delete-chat">×</span>
+      </button>
+    </nav>
+    <div class="sidebar-bottom">
+      <a class="settings-link" href="settings.html"><span>⚙</span><span>设置</span></a>
+    </div>
+  </aside>
+
+  <section class="workspace">
+    <header class="header">
+      <div>
+        <h1>新对话</h1>
+        <p>让 Agent 在你的机器上完成工作</p>
+      </div>
+      <div class="header-actions">
+        <button class="panel-toggle" id="panelToggle">执行对话</button>
+      </div>
+    </header>
+
+    <main class="thread">
+      <div class="thread-inner" style="height: 100%;">
+        <div class="welcome">
+          <div class="welcome-mark">✦</div>
+          <h2>今天想完成什么?</h2>
+          <p>描述一个目标,Agent 会读取项目、执行命令并验证结果。</p>
+        </div>
+      </div>
+    </main>
+
+    <div class="composer-wrap">
+      <div class="composer">
+        <textarea rows="1" placeholder="交给 Agent 一个任务"></textarea>
+        <button class="send-button" disabled title="发送">↑</button>
+      </div>
+      <div class="composer-meta">
+        <span>Enter 发送 · Shift+Enter 换行</span>
+        <span class="usage"></span>
+      </div>
+    </div>
+  </section>
+
+  <aside class="call-panel">
+    <div class="panel-head">
+      <b>执行对话</b>
+      <button class="panel-close" id="panelClose">×</button>
+    </div>
+    <div class="panel-body">
+      <div class="target-list">
+        <div style="margin: auto; padding: 32px 16px; font-size: 12.5px; color: var(--faint); text-align: center;">还没有创建执行对话</div>
+      </div>
+    </div>
+  </aside>
+
+</div>
+<script src="app.js"></script>
+</body>
+</html>

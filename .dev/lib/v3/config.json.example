@@ -1,0 +1,11 @@
+{
+  "responsesUrl": "https://example.com/v1/responses",
+  "apiKey": "",
+  "model": "",
+  "kernelPort": 9600,
+  "userlandPort": 9601,
+  "init": "node userland/serve.js",
+  "guard": "userland/bin/guard",
+  "bashTimeoutMs": 600000,
+  "workdir": ""
+}

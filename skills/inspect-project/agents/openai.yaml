@@ -1,0 +1,4 @@
+interface:
+  display_name: "项目检查"
+  short_description: "系统化检查项目结构、运行配置、关键风险并给出可执行结论"
+  default_prompt: "Use $inspect-project to inspect this project and report its architecture, setup, and risks."

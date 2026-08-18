@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AGENT · messenger · 新对话</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="shell" id="shell">
+
+  <aside class="sidebar">
+    <div class="window-row"><i></i><i></i><i></i><a class="new-chat" href="new.html" title="新对话">＋</a></div>
+    <div class="search"><span>⌕</span><input placeholder="搜索"></div>
+    <nav class="chat-list">
+      <button class="chat-row active">
+        <span class="avatar-big grad0">新</span>
+        <span class="chat-copy">
+          <span class="row-top"><b>新对话</b><span class="delete-chat">×</span></span>
+          <small>尚无消息</small>
+        </span>
+      </button>
+      <button class="chat-row">
+        <span class="avatar-big grad1">迁<i class="presence running"></i></span>
+        <span class="chat-copy">
+          <span class="row-top"><b>迁移 SQLite schema</b><time>14:03</time><span class="delete-chat">×</span></span>
+          <small>正在核对未回填的行…</small>
+        </span>
+      </button>
+      <button class="chat-row">
+        <span class="avatar-big grad4">修</span>
+        <span class="chat-copy">
+          <span class="row-top"><b>修复 SSE 断线重连</b><time>昨天</time><span class="delete-chat">×</span></span>
+          <small>已改为收到 gap 后全量刷新。</small>
+        </span>
+      </button>
+      <button class="chat-row">
+        <span class="avatar-big grad3">重</span>
+        <span class="chat-copy">
+          <span class="row-top"><b>重构事件订阅</b><time>昨天</time><span class="delete-chat">×</span></span>
+          <small>完成。单条连接统一分发。</small>
+        </span>
+      </button>
+    </nav>
+    <a class="account" href="settings.html">
+      <span class="avatar-big grad0">A</span>
+      <span class="chat-copy"><b>AGENT</b><small>127.0.0.1:9522</small></span>
+      <span class="go">设置 ›</span>
+    </a>
+  </aside>
+
+  <section class="workspace">
+    <header class="header">
+      <div class="peer">
+        <span class="avatar-big grad0 sm">新</span>
+        <div>
+          <h1>新对话</h1>
+          <p>让 Agent 在你的机器上完成工作</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="panel-toggle" id="panelToggle">执行对话</button>
+      </div>
+    </header>
+
+    <main class="thread">
+      <div class="thread-inner" style="height: 100%;">
+        <div class="welcome">
+          <div class="welcome-mark">✦</div>
+          <h2>今天想完成什么?</h2>
+          <p>描述一个目标,Agent 会读取项目、执行命令并验证结果。</p>
+        </div>
+      </div>
+    </main>
+
+    <div class="composer-wrap">
+      <div class="composer">
+        <button class="plus" title="附加">＋</button>
+        <textarea rows="1" placeholder="交给 Agent 一个任务"></textarea>
+        <button class="send-button" disabled title="发送">↑</button>
+      </div>
+      <div class="composer-meta">
+        <span>Enter 发送 · Shift+Enter 换行</span>
+        <span class="usage"></span>
+      </div>
+    </div>
+  </section>
+
+  <aside class="call-panel">
+    <div class="panel-head">
+      <b>执行对话</b>
+      <button class="panel-close" id="panelClose">×</button>
+    </div>
+    <div class="panel-body">
+      <div class="target-list">
+        <div style="margin: auto; padding: 32px 16px; font-size: 12.5px; color: var(--faint); text-align: center;">还没有创建执行对话</div>
+      </div>
+    </div>
+  </aside>
+
+</div>
+<script src="app.js"></script>
+</body>
+</html>

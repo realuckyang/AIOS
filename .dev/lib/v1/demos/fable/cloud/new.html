@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AGENT · cloud · 新对话</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="shell" id="shell">
+
+  <aside class="sidebar">
+    <a class="brand" href="index.html"><span class="brand-mark"></span><span class="brand-name">AGENT</span></a>
+    <a class="side-item active" href="new.html"><span class="ic">＋</span>新对话</a>
+    <button class="side-item"><span class="ic">⌕</span>搜索</button>
+    <div class="side-label">对话</div>
+    <nav class="chat-list">
+      <button class="chat-row">
+        <span class="title">迁移 SQLite schema</span>
+        <span class="delete-chat">×</span>
+      </button>
+      <button class="chat-row">
+        <span class="dot running"></span>
+        <span class="title">修复 SSE 断线重连</span>
+        <span class="delete-chat">×</span>
+      </button>
+      <button class="chat-row">
+        <span class="title">重构事件订阅</span>
+        <span class="delete-chat">×</span>
+      </button>
+      <button class="chat-row">
+        <span class="title">整理仓库文档</span>
+        <span class="delete-chat">×</span>
+      </button>
+    </nav>
+    <a class="side-item settings-link" href="settings.html"><span class="ic">⚙</span>设置</a>
+  </aside>
+
+  <section class="workspace">
+    <main class="thread">
+      <div class="hero">
+
+        <div class="cloud"><i></i><i></i><i></i></div>
+        <h2>今天想完成什么?</h2>
+        <p class="sub">描述一个目标,Agent 会读取项目、执行命令并验证结果。</p>
+
+        <div class="composer">
+          <textarea rows="2" placeholder="交给 Agent 一个任务"></textarea>
+          <div class="composer-bar">
+            <span class="model-chip">deepseek-v4-flash</span>
+            <span class="spacer"></span>
+            <a class="icon-btn" href="settings.html" title="设置">⚙</a>
+            <button class="send-button" disabled title="发送">↑</button>
+          </div>
+        </div>
+
+        <div class="quick-row">
+          <button class="quick">
+            <span class="ic">›_</span>
+            <span><b>检查项目状态</b><small>读取 git 与最近改动</small></span>
+          </button>
+          <button class="quick">
+            <span class="ic">⛁</span>
+            <span><b>核对数据库 schema</b><small>对比 schema.sql 与线上库</small></span>
+          </button>
+          <button class="quick">
+            <span class="ic">≡</span>
+            <span><b>整理文档</b><small>同步 docs 与当前实现</small></span>
+          </button>
+        </div>
+
+        <div class="recent">
+          <div class="recent-head">
+            <div>
+              <b>继续最近的对话</b>
+              <p>最近的三条对话。</p>
+            </div>
+            <button class="all">查看全部</button>
+          </div>
+          <div class="recent-grid">
+            <a class="recent-item" href="index.html">
+              <b>迁移 SQLite schema</b>
+              <time>刚刚</time>
+            </a>
+            <a class="recent-item" href="index.html">
+              <b>修复 SSE 断线重连</b>
+              <time>昨天</time>
+            </a>
+            <a class="recent-item" href="index.html">
+              <b>重构事件订阅</b>
+              <time>昨天</time>
+            </a>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </section>
+
+  <aside class="call-panel">
+    <div class="panel-head">
+      <b>执行对话</b>
+      <button class="panel-close" id="panelClose">×</button>
+    </div>
+    <div class="panel-body">
+      <div class="target-list">
+        <div style="margin: auto; padding: 32px 16px; font-size: 12.5px; color: var(--faint); text-align: center;">还没有创建执行对话</div>
+      </div>
+    </div>
+  </aside>
+
+</div>
+<script src="app.js"></script>
+</body>
+</html>
