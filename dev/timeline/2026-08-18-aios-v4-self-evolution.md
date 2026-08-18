@@ -58,7 +58,7 @@ npm start
   不拥有 chat,不启动 App,不读写对话历史。
 - App:拥有对话与持久事实(`var/aios.db`),选择跨轮上下文,把完整 input 交给
   Kernel;App 崩溃不损坏磁盘事实,Kernel 崩溃不需要恢复聊天状态。
-- 详细设计见 [`.dev/docs/`](../../.dev/docs/README.md);v1–v3 历史版本在 `.dev/lib/`。
+- 详细设计见 [`dev/design/`](../design/README.md);v1–v3 历史版本在 `dev/lib/`。
 
 ### 快速开始
 
@@ -94,13 +94,14 @@ npm start
 
 **拿过来的**(以 AGENT 仓库的 git 跟踪清单为准):`boot.js`、`stop.js`、
 `kernel/`、`app/`、`bin/`、`etc/`(仅 example 配置、instructions、tools 注册表)、
-`skills/`、`package.json`、`LICENSE`、`.gitignore`、`.dev/`(v4 设计文档与 v1–v3 历史)。
+`skills/`、`package.json`、`LICENSE`、`.gitignore`、`dev/design` 与 `dev/lib`(v4 设计文档与 v1–v3 历史)。
 
 **删掉的旧代码**:`server/`、`ui/`、`language/`、`scripts/`、`skills/`(旧版)、
 三个 install 脚本、旧 `package.json` / `package-lock.json`。
 
 **保留不动的**:根 `README.md`(理念宣言,依然成立)与 `dev/` 全部史料。
-自此仓库里有两个资料目录:`dev/` 是 AIOS 谱系的史料,`.dev/` 是 v4 实验期的
-设计文档与历史版本。
+两代资料合并进同一个 `dev/`:原有的 `doc`(文章)、`timeline`、`contributions`、
+`demos`、`industry-news` 不动,AGENT 带来的设计文档进 `dev/design`,v1–v3 历史版本
+进 `dev/lib`;`dev/test` 指向已删除的旧 server,一并移除。
 
 **没带的**:`etc/config.json`(含密钥,gitignore)、`var/`、`run/`、构建产物。

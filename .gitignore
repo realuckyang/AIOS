@@ -1,9 +1,9 @@
 # 历史 v1 的本地库。
-.dev/lib/v1/data/
+dev/lib/v1/data/
 
 # 历史 v3：对话数据(JSONL)与含密钥的配置。
-.dev/lib/v3/data/
-.dev/lib/v3/config.json
+dev/lib/v3/data/
+dev/lib/v3/config.json
 
 # 当前版本：App 持久状态、Kernel 临时状态与含密钥的配置。
 var/
@@ -18,7 +18,7 @@ etc/config.json
 # 依赖与构建产物
 node_modules/
 *.tsbuildinfo
-.dev/lib/v1/ui/dist/
+dev/lib/v1/ui/dist/
 dist/
 
 # 系统与编辑器文件
