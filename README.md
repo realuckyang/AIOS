@@ -46,7 +46,7 @@ npm start
 - **App**:拥有对话与持久事实(`var/aios.db`),选择跨轮上下文,把完整 input 交给
   Kernel。App 崩溃不损坏磁盘事实,Kernel 崩溃不需要恢复聊天状态。
 
-详细设计见 [`dev/design/`](dev/design/README.md)。
+详细设计见 [`archive/design/`](archive/design/README.md)。
 
 ---
 
@@ -79,13 +79,13 @@ npm start
 
 ### 资料
 
-`dev/` 是存档区:项目的历史、设计文档与历代版本都在这里。文档一经归档**原样保留**,
+`archive/` 是存档区:项目的历史、设计文档与历代版本都在这里。文档一经归档**原样保留**,
 与现状不符时在文首加存档说明,不改写正文 —— 历史不重写,只做标记。
 
 | 目录 | 内容 |
 | --- | --- |
-| [`dev/design/`](dev/design) | 设计文档 |
-| [`dev/timeline/`](dev/timeline) | 大事记(每次重大变更一篇,含仓库快照存档) |
-| [`dev/doc/`](dev/doc) | 理念与文章 |
-| [`dev/lib/`](dev/lib) | 历代版本 |
-| [`dev/contributions/`](dev/contributions) · [`dev/demos/`](dev/demos) · [`dev/industry-news/`](dev/industry-news) | 贡献、演示与行业动态 |
+| [`archive/design/`](archive/design) | 设计文档 |
+| [`archive/timeline/`](archive/timeline) | 大事记(每次重大变更一篇,含仓库快照存档) |
+| [`archive/doc/`](archive/doc) | 理念与文章 |
+| [`archive/lib/`](archive/lib) | 历代版本 |
+| [`archive/contributions/`](archive/contributions) · [`archive/demos/`](archive/demos) · [`archive/industry-news/`](archive/industry-news) | 贡献、演示与行业动态 |

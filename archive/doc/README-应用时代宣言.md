@@ -1,6 +1,6 @@
 > **存档说明(2026-08-18)**:这是 v4 合流前的根 README,「应用时代」的理念宣言 ——
 > 当时系统壳不可变,思路围绕「在壳里加应用」展开。v4 起壳与应用皆可塑,
-> 只保留不可变脊柱,详见 [`dev/timeline/2026-08-18-aios-v4-self-evolution.md`](../timeline/2026-08-18-aios-v4-self-evolution.md)。
+> 只保留不可变脊柱,详见 [`archive/timeline/2026-08-18-aios-v4-self-evolution.md`](../timeline/2026-08-18-aios-v4-self-evolution.md)。
 > 正文原样保留,未做任何改动;「形态即价值」的判断依然成立,只是从系统前提换位为进化的目标态。
 
 
