@@ -1,3 +1,0 @@
-ui/src/apps/createapp/index.vue
-ui/src/components/desktop/Window.vue
-scripts/dev.mjs

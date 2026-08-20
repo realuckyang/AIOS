@@ -1,13 +1,10 @@
 {
-  "name": "aios-v4",
+  "name": "aios",
   "private": true,
   "type": "module",
   "engines": { "node": ">=22" },
   "scripts": {
     "start": "node boot.js",
-    "stop": "node stop.js",
-    "kernel": "node kernel/index.js",
-    "app": "node app/server/index.js",
-    "console": "node kernel/index.js console"
+    "stop": "node stop.js"
   }
 }
