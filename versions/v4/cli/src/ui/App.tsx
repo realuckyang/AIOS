@@ -138,7 +138,7 @@ export function App({ client, config, initial }: Props) {
     <Box flexDirection="column">
       <Box flexDirection="column" marginBottom={1}>
         <Text color="magenta">◆ aios</Text>
-        <Text dimColor>{client.label} · {config.model || '未设置模型'} · {chatId}</Text>
+        <Text dimColor>{client.label} · {chatId}{config.direct ? ' · 直连内核,无历史' : ''}</Text>
       </Box>
 
       {rows.map((row, index) => <RowView key={index} row={row} />)}
@@ -151,20 +151,14 @@ export function App({ client, config, initial }: Props) {
           placeholder={busy ? '' : '说一句,或 /help'} />
       </Box>
 
-      <Box marginTop={1} flexDirection="column">
+      <Box marginTop={1}>
         <Text dimColor>
-          {busy ? '● 运行中' : '○ 空闲'}
-          {level ? ` · 上下文 ${compact(level)}/${compact(config.contextWindow)} (${pct}%)` : ''}
-          {config.direct ? ' · 直连内核,无历史' : ''}
+          {config.model || '未设置模型'}
+          {spent ? ` · 输入 ${compact(totals.input)}` : ''}
+          {spent && totals.cached ? ` 缓存 ${compact(totals.cached)}` : ''}
+          {spent ? ` 输出 ${compact(totals.output)}` : ''}
+          {level ? `  ·  ${compact(level)}/${compact(config.contextWindow)} (${pct}%)` : ''}
         </Text>
-        {spent ? (
-          <Text dimColor>
-            输入 {compact(totals.input)}
-            {totals.cached ? <Text> 缓存 {compact(totals.cached)}</Text> : null}
-            {' '}输出 {compact(totals.output)}
-            {' '}· 合计 {compact(spent)}
-          </Text>
-        ) : null}
       </Box>
     </Box>
   );

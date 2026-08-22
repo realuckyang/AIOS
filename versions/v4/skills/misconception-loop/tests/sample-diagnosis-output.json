@@ -1,0 +1,45 @@
+{
+  "schema_version": "2.0",
+  "phase": "diagnosis",
+  "case_id": "anonymous-16bb4742fb54",
+  "observable_error": {
+    "student_evidence": "2x = 7 - 3",
+    "description": "移项后的等式与原式不等价",
+    "first_error_step": "第1步"
+  },
+  "candidates": [
+    {
+      "code": "RULE_OPERATION",
+      "claim": "可能混淆了移项与等式两边同加同减",
+      "supporting_evidence": "把左边的-3移到右边后仍然做减法",
+      "counter_evidence": "只有一道题，暂未观察到重复错误",
+      "confidence": "medium",
+      "status": "unresolved"
+    },
+    {
+      "code": "TRANSCRIPTION",
+      "claim": "也可能理解规则但在改写时复制了错误符号",
+      "supporting_evidence": "错误集中在一个符号",
+      "counter_evidence": "学生未提供口头解释或其他步骤",
+      "confidence": "low",
+      "status": "unresolved"
+    }
+  ],
+  "diagnostic_item": {
+    "question": "不求出a：a-5=9时，两边应同时做什么运算？为什么？",
+    "distinguishes": ["RULE_OPERATION", "TRANSCRIPTION"]
+  },
+  "diagnosis_state": {
+    "schema_version": "2.0",
+    "case_id": "anonymous-16bb4742fb54",
+    "candidate_codes": ["RULE_OPERATION", "TRANSCRIPTION"],
+    "diagnostic_question": "不求出a：a-5=9时，两边应同时做什么运算？为什么？",
+    "status": "awaiting_response",
+    "state_token": "3f3a04895b05214c"
+  },
+  "safety": {
+    "assessment_active": false,
+    "pii_redacted": true,
+    "limitations": ["单道题只能形成暂定候选"]
+  }
+}

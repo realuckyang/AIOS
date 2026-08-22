@@ -42,6 +42,11 @@ export const StatusLine = memo(function StatusLine({ items, meta }: { items: Row
       <span className="sl-item" title="对话累计输入 tokens(计费口径,含缓存命中)">输入 {fmt(inputSum)}</span>
       <span className="sl-item" title="输入中命中提示缓存的部分">缓存 {fmt(cachedSum)}</span>
       <span className="sl-item" title="对话累计输出 tokens">输出 {fmt(outputSum)}</span>
+      {(priceIn > 0 || priceOut > 0) && (
+        <span className="sl-item" title={`按当前价估算:输入 ${currency}${priceIn}/M · 缓存 ${currency}${priceCached}/M · 输出 ${currency}${priceOut}/M`}>
+          {currency}{cost >= 0.1 ? cost.toFixed(2) : cost.toFixed(4)}
+        </span>
+      )}
       {window > 0 && (
         <span className="sl-item" title={`上下文水位:上轮请求 ${level} / 窗口 ${window} tokens(${pct}%)`}>
           <svg className={`sl-ring ${tone}`} width="13" height="13" viewBox="0 0 13 13" aria-hidden>
@@ -54,11 +59,6 @@ export const StatusLine = memo(function StatusLine({ items, meta }: { items: Row
             />
           </svg>
           <span>{fmt(level)}/{fmt(window)}</span>
-        </span>
-      )}
-      {(priceIn > 0 || priceOut > 0) && (
-        <span className="sl-item" title={`按当前价估算:输入 ${currency}${priceIn}/M · 缓存 ${currency}${priceCached}/M · 输出 ${currency}${priceOut}/M`}>
-          {currency}{cost >= 0.1 ? cost.toFixed(2) : cost.toFixed(4)}
         </span>
       )}
     </div>

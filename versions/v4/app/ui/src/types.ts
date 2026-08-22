@@ -52,7 +52,7 @@ export interface ToolOutput {
   stderr?: string;
 }
 
-export type ConfigFieldType = 'string' | 'secret' | 'number' | 'ratio' | 'text';
+export type ConfigFieldType = 'string' | 'secret' | 'number' | 'ratio' | 'money' | 'text';
 
 export interface ConfigField {
   key: string;
@@ -177,4 +177,68 @@ export interface Memory {
   source: 'manual' | 'agent' | 'runtime';
   created_at: string;
   updated_at: string;
+}
+
+// ---------- 用量/成本(usage 应用) ----------
+export interface UsageOverview {
+  input: number;
+  output: number;
+  cached: number;
+  cost: number;
+  requests: number;
+  from: string | null;
+  to: string | null;
+  currency: string;
+  hasPrice: boolean;
+}
+
+export interface UsageTrendPoint {
+  bucket: string;
+  label: string;
+  input: number;
+  output: number;
+  cached: number;
+  cost: number;
+  requests: number;
+}
+
+export interface UsageTrend {
+  granularity: 'day' | 'hour';
+  currency: string;
+  hasPrice: boolean;
+  points: UsageTrendPoint[];
+}
+
+export interface UsageChat {
+  id: string;
+  title: string;
+  input: number;
+  output: number;
+  cached: number;
+  cost: number;
+  requests: number;
+  at: string;
+}
+
+export interface UsageByChat {
+  currency: string;
+  hasPrice: boolean;
+  chats: UsageChat[];
+}
+
+// ---------- 技能商店(skillstore 应用) ----------
+export interface StoreSkill {
+  slug: string;
+  name: string;
+  summary: string;
+  downloads: number;
+  stars: number;
+  updatedAt: number;
+  version: string;
+  license: string | null;
+}
+
+export interface StoreSkillDetail extends StoreSkill {
+  owner: unknown;
+  moderation: string;
 }

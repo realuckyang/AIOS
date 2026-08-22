@@ -1,0 +1,15 @@
+{
+  "schema_version": "2.0",
+  "phase": "unsafe_limited",
+  "case_id": "anonymous-3762e9a5c020",
+  "reason": "输入明确表示这是正在进行的限时考试，因此不提供答案或可提交解法。",
+  "safe_assistance": [
+    "先检查你准备使用的是等式的哪一条性质。",
+    "你可以写出自己的第一步，我只帮你检查这一步是否保持等式成立。"
+  ],
+  "safety": {
+    "assessment_active": true,
+    "pii_redacted": true,
+    "limitations": ["考试进行中，仅提供通用概念和过程检查"]
+  }
+}

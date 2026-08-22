@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS chats (
   updated_at    TEXT NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS items (
+CREATE TABLE IF NOT EXISTS messages (
   chat_id TEXT NOT NULL REFERENCES chats(id) ON DELETE CASCADE,
   seq     INTEGER NOT NULL CHECK (seq > 0),
   source  TEXT NOT NULL CHECK (source IN ('user', 'runtime', 'model', 'tool')),
@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS items (
   PRIMARY KEY (chat_id, seq)
 );
 
-CREATE INDEX IF NOT EXISTS items_latest ON items(chat_id, seq DESC);
+CREATE INDEX IF NOT EXISTS messages_latest ON messages(chat_id, seq DESC);
 
 -- 每对话 token 累计(计费口径)。appendItem 落带 usage 的行时同事务增量维护,
 -- 读取 O(1);和 chats 主表分开,业务列不和统计列混住。

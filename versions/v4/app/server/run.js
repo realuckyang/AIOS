@@ -3,7 +3,8 @@ import * as store from './store.js';
 import * as events from './events.js';
 import { buildRunRequest } from './context.js';
 import { maintainContext } from './compact.js';
-import { getConfig, runOptions } from './config.js';
+import { getConfig, runOptions, liveCreds } from './config.js';
+import { inlineImageRefs } from './files.js';
 
 const running = new Map(); // chatId -> { controller, pending, kernelPort, appPort }
 
@@ -64,11 +65,13 @@ async function execute(chatId, entry) {
     appApiBase,
     userKeepMaxChars: config.compactUserKeepMaxChars,
   });
+  // 图片引用留在库里,发模型这一刻才读盘内联成 data URL(远程 API 到不了本地)
+  request.input = inlineImageRefs(request.input);
   const res = await fetch(`http://127.0.0.1:${entry.kernelPort}/api/runs`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     // 执行参数随 run 下发:改完下一轮就生效,不用重启 Kernel
-    body: JSON.stringify({ runId: chatId, options: runOptions(), ...request }),
+    body: JSON.stringify({ runId: chatId, options: runOptions(), creds: liveCreds(), ...request }),
     signal: entry.controller.signal,
   });
   if (!res.ok) throw new Error((await res.text().catch(() => '')) || `Kernel ${res.status}`);

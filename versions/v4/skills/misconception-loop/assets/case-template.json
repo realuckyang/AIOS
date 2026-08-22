@@ -1,0 +1,16 @@
+{
+  "case_id": "replace-me",
+  "mode": "diagnosis",
+  "subject": "初中数学",
+  "grade": "七年级",
+  "problem": "请填写完整题目",
+  "student_work": "请保留学生原答案或原步骤，不要预先改写",
+  "reference_answer": null,
+  "diagnostic_response": null,
+  "context": {
+    "assessment_active": false,
+    "source": "错题复盘"
+  },
+  "learner_profile": null
+}
+

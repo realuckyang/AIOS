@@ -1,12 +1,12 @@
 // Skills 目录:单列卡片列表,点进详情,返回回列表。
 // 不做左右两栏 —— 一套布局通吃桌面和移动端。
 import { useEffect, useState } from 'react';
-import * as api from '../api';
-import type { SkillDetail, SkillSummary } from '../types';
-import { Markdown } from './Markdown';
-import { Icon } from './Icon';
+import * as api from '../../api';
+import type { SkillDetail, SkillSummary } from '../../types';
+import { Markdown } from '../../components/Markdown';
+import { Icon } from '../../components/Icon';
 
-export function Skills() {
+export default function Skills() {
   const [skills, setSkills] = useState<SkillSummary[]>([]);
   const [selected, setSelected] = useState<SkillDetail | null>(null);
   const [error, setError] = useState('');

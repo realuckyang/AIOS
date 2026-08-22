@@ -7,6 +7,7 @@
 // 仍要靠 agent 自己按状态行的水位收敛。
 import * as store from './store.js';
 import { itemText, userItem } from './context.js';
+import { liveCreds } from './config.js';
 
 // 水位、预算与提示词都在设置里(压缩那一页),这里只留摘要素材的裁剪常量。
 const CALL_ARGS_MAX_CHARS = 2_000;       // 摘要素材里单条工具调用参数的上限
@@ -105,7 +106,7 @@ async function summarize({ kernelPort, material, strict, prompt, timeoutMs, mode
   const res = await fetch(`http://127.0.0.1:${kernelPort}/api/complete`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ model, instructions, input: [userItem(material)] }),
+    body: JSON.stringify({ model, instructions, input: [userItem(material)], creds: liveCreds() }),
     signal: AbortSignal.timeout(timeoutMs),
   });
   if (!res.ok) throw new Error((await res.text().catch(() => '')) || `Kernel ${res.status}`);

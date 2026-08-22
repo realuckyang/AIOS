@@ -1,0 +1,52 @@
+{
+  "schema_version": "2.0",
+  "phase": "teacher_plan",
+  "case_id": "anonymous-16bb4742fb54",
+  "observable_error": {
+    "student_evidence": "2x = 7 - 3",
+    "description": "移项后的等式与原式不等价",
+    "first_error_step": "第1步"
+  },
+  "candidates": [
+    {
+      "code": "RULE_OPERATION",
+      "claim": "可能混淆了等式两边同加同减",
+      "supporting_evidence": "消去左侧-3时右侧仍写成减3",
+      "counter_evidence": "只有一道题，尚无重复证据",
+      "confidence": "medium",
+      "status": "unresolved"
+    },
+    {
+      "code": "TRANSCRIPTION",
+      "claim": "也可能理解规则但改写时复制错符号",
+      "supporting_evidence": "错误集中在一个符号",
+      "counter_evidence": "没有口头解释可供判断",
+      "confidence": "low",
+      "status": "unresolved"
+    }
+  ],
+  "diagnostic_item": {
+    "question": "不求出a：a-5=9时，两边应同时做什么运算？为什么？",
+    "distinguishes": ["RULE_OPERATION", "TRANSCRIPTION"]
+  },
+  "diagnosis_state": {
+    "schema_version": "2.0",
+    "case_id": "anonymous-16bb4742fb54",
+    "candidate_codes": ["RULE_OPERATION", "TRANSCRIPTION"],
+    "diagnostic_question": "不求出a：a-5=9时，两边应同时做什么运算？为什么？",
+    "status": "awaiting_response",
+    "state_token": "3f3a04895b05214c"
+  },
+  "teacher_card": "当前只能确认第一步等式不等价；规则混淆和抄写失误均待验证。先问诊断微题，再选择教学分支。",
+  "learner_worksheet": {
+    "instructions": "先独立作答，再用一句话说明理由。",
+    "question": "不求出a：a-5=9时，两边应同时做什么运算？为什么？",
+    "response_space": "作答：________；理由：________________",
+    "answer_revealed": false
+  },
+  "conditional_branches": [
+    {"if_response": "两边加5且理由是保持等式成立", "next_action": "削弱规则混淆，转查抄写与回代检查"},
+    {"if_response": "两边减5或理由仍是机械移项", "next_action": "支持规则混淆，进行等式性质单步骤补救"}
+  ],
+  "safety": {"assessment_active": false, "pii_redacted": true, "limitations": ["学生尚未回答诊断微题"]}
+}

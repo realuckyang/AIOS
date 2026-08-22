@@ -1,10 +1,10 @@
 // 工具目录:单列卡片列表,点进详情,返回回列表。布局与 Skills 页同一套 catalog。
 import { useEffect, useState } from 'react';
-import * as api from '../api';
-import type { ToolDetail, ToolSummary } from '../types';
-import { Icon } from './Icon';
+import * as api from '../../api';
+import type { ToolDetail, ToolSummary } from '../../types';
+import { Icon } from '../../components/Icon';
 
-export function Tools() {
+export default function Tools() {
   const [tools, setTools] = useState<ToolSummary[]>([]);
   const [selected, setSelected] = useState<ToolDetail | null>(null);
   const [error, setError] = useState('');

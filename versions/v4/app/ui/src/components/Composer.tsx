@@ -9,6 +9,7 @@
 import { memo, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import * as api from '../api';
 import { Icon } from './Icon';
+import { useEnterSubmit } from '../hooks/useEnterSubmit';
 
 /** 起手式填进来的内容。带序号:同一条连点两次也要重新填。 */
 export interface ComposerSeed { text: string; n: number }
@@ -53,7 +54,6 @@ export const Composer = memo(function Composer({ onSend, busy, onStop, seed }: C
   const [value, setValue] = useState('');
   const [images, setImages] = useState<Attachment[]>([]);
   const [dragging, setDragging] = useState(false);
-  const composing = useRef(false);
   const areaRef = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const nextId = useRef(0);
@@ -105,6 +105,8 @@ export const Composer = memo(function Composer({ onSend, busy, onStop, seed }: C
     setImages([]);
   };
 
+  const enter = useEnterSubmit(submit);
+
   return (
     <footer className="composer-wrap">
       <div
@@ -143,8 +145,8 @@ export const Composer = memo(function Composer({ onSend, busy, onStop, seed }: C
           placeholder="输入消息,Enter 发送,Shift+Enter 换行"
           value={value}
           onChange={(e) => setValue(e.target.value)}
-          onCompositionStart={() => { composing.current = true; }}
-          onCompositionEnd={() => { composing.current = false; }}
+          onCompositionStart={enter.onCompositionStart}
+          onCompositionEnd={enter.onCompositionEnd}
           onPaste={(e) => {
             const files = [...e.clipboardData.items]
               .filter((item) => item.kind === 'file')
@@ -155,12 +157,7 @@ export const Composer = memo(function Composer({ onSend, busy, onStop, seed }: C
               addFiles(files);
             }
           }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing && !composing.current) {
-              e.preventDefault();
-              submit();
-            }
-          }}
+          onKeyDown={enter.onKeyDown}
         />
         <div className="composer-toolbar">
           <button

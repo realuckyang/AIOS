@@ -19,6 +19,12 @@ function database() {
   fs.mkdirSync(VAR_DIR, { recursive: true });
   db = new DatabaseSync(DB_FILE);
   db.exec('PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 5000;');
+  // 老库把 items 表改名 messages。必须在建表前:否则下面 CREATE TABLE IF NOT EXISTS messages
+  // 会先建一张空表,老数据被晾在 items 里丢掉。幂等:只在有 items、无 messages 时做。
+  const hasTable = (name) => !!db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?").get(name);
+  if (hasTable('items') && !hasTable('messages')) {
+    db.exec('ALTER TABLE items RENAME TO messages; DROP INDEX IF EXISTS items_latest;');
+  }
   db.exec(fs.readFileSync(SCHEMA_FILE, 'utf8'));
   // schema.sql 只建新表;已有库的新列用 ALTER 补
   if (!db.prepare('PRAGMA table_info(chats)').all().some((col) => col.name === 'pinned_at')) {
@@ -84,13 +90,13 @@ export function removeChat(id) {
 }
 
 export function readItems(id, { afterSeq = 0 } = {}) {
-  return database().prepare(`SELECT seq, source, item, usage, at FROM items
+  return database().prepare(`SELECT seq, source, item, usage, at FROM messages
     WHERE chat_id = ? AND seq > ? ORDER BY seq ASC`).all(id, afterSeq).map(decodeRow);
 }
 
 export function readItemsPage(id, { beforeSeq = Number.MAX_SAFE_INTEGER, limit = 50 } = {}) {
   const size = Number.isInteger(limit) ? Math.min(Math.max(1, limit), 200) : 50;
-  const rows = database().prepare(`SELECT seq, source, item, usage, at FROM items
+  const rows = database().prepare(`SELECT seq, source, item, usage, at FROM messages
     WHERE chat_id = ? AND seq < ? ORDER BY seq DESC LIMIT ?`).all(id, beforeSeq, size).reverse().map(decodeRow);
 
   // 页边界如果从工具输出开始，补入对应的 function_call。
@@ -99,14 +105,14 @@ export function readItemsPage(id, { beforeSeq = Number.MAX_SAFE_INTEGER, limit =
     .filter((row) => row.item.type === 'function_call_output' && !present.has(row.item.call_id))
     .map((row) => row.item.call_id));
   for (const callId of missing) {
-    const row = database().prepare(`SELECT seq, source, item, usage, at FROM items
+    const row = database().prepare(`SELECT seq, source, item, usage, at FROM messages
       WHERE chat_id = ? AND json_extract(item, '$.type') = 'function_call'
         AND json_extract(item, '$.call_id') = ? ORDER BY seq DESC LIMIT 1`).get(id, callId);
     if (row) rows.unshift(decodeRow(row));
   }
   rows.sort((a, b) => a.seq - b.seq);
   const oldest = rows[0]?.seq ?? beforeSeq;
-  const hasMore = !!database().prepare('SELECT 1 FROM items WHERE chat_id = ? AND seq < ? LIMIT 1').get(id, oldest);
+  const hasMore = !!database().prepare('SELECT 1 FROM messages WHERE chat_id = ? AND seq < ? LIMIT 1').get(id, oldest);
   return { items: rows, hasMore };
 }
 
@@ -116,12 +122,12 @@ export function appendItem(id, { source, item, usage }) {
   const conn = database();
   conn.exec('BEGIN IMMEDIATE');
   try {
-    const seq = conn.prepare('SELECT COALESCE(MAX(seq), 0) + 1 AS seq FROM items WHERE chat_id = ?').get(id).seq;
+    const seq = conn.prepare('SELECT COALESCE(MAX(seq), 0) + 1 AS seq FROM messages WHERE chat_id = ?').get(id).seq;
     const at = new Date().toISOString();
-    conn.prepare(`INSERT INTO items(chat_id, seq, source, item, usage, at) VALUES (?, ?, ?, ?, ?, ?)`)
+    conn.prepare(`INSERT INTO messages(chat_id, seq, source, item, usage, at) VALUES (?, ?, ?, ?, ?, ?)`)
       .run(id, seq, source, JSON.stringify(item), usage ? JSON.stringify(usage) : null, at);
     if (usage) {
-      // usage 累计同事务增量维护,和 items 落库天然一致
+      // usage 累计同事务增量维护,和 messages 落库天然一致
       conn.prepare(`INSERT INTO usage(chat_id, input, cached, output) VALUES (?, ?, ?, ?)
         ON CONFLICT(chat_id) DO UPDATE SET
           input = input + excluded.input, cached = cached + excluded.cached, output = output + excluded.output`)
@@ -320,4 +326,146 @@ export function completeRestartRequests(instanceId) {
   database().prepare(`UPDATE restarts
     SET status = 'succeeded', completed_at = ?, instance_id = ? WHERE status = 'restarting'`)
     .run(now, instanceId);
+}
+
+// ── 用量/成本(app/ui/src/apps/usage)────────────────────────────────
+// messages 表里带 usage 的行是计费口径:每条模型响应一次追加,累加即总消耗。
+// 这里按时间桶/对话聚合 token 并换算成本。价格参数由 api.js 从配置传入,
+// 单价以「币种/百万 tokens」计。
+const numTok = (row, field) => Number(row[field]) || 0;
+
+function readUsageRows() {
+  return database().prepare(`SELECT m.chat_id, c.title, m.at,
+    json_extract(m.usage, '$.input_tokens') AS input_tokens,
+    json_extract(m.usage, '$.output_tokens') AS output_tokens,
+    json_extract(m.usage, '$.input_tokens_details.cached_tokens') AS cached_tokens
+    FROM messages m JOIN chats c ON c.id = m.chat_id
+    WHERE m.usage IS NOT NULL ORDER BY m.at ASC`).all();
+}
+
+// 成本:input 里命中缓存的部分按缓存价,其余按输入价;输出按输出价。
+// priceCachedPerMTokens 这版语义为「0 = 不打折,按输入价算」。
+export function usageCost(input, output, cached, prices) {
+  const pin = Number(prices?.input) || 0;
+  const pc = Number(prices?.cached) > 0 ? Number(prices?.cached) : pin;
+  const pout = Number(prices?.output) || 0;
+  const fresh = Math.max(0, (Number(input) || 0) - (Number(cached) || 0));
+  return (fresh * pin + (Number(cached) || 0) * pc + (Number(output) || 0) * pout) / 1e6;
+}
+
+export function usageOverview(prices) {
+  const rows = readUsageRows();
+  let input = 0, output = 0, cached = 0;
+  for (const r of rows) {
+    input += numTok(r, 'input_tokens');
+    output += numTok(r, 'output_tokens');
+    cached += numTok(r, 'cached_tokens');
+  }
+  return {
+    input, output, cached,
+    cost: usageCost(input, output, cached, prices),
+    requests: rows.length,
+    from: rows[0]?.at ?? null,
+    to: rows[rows.length - 1]?.at ?? null,
+  };
+}
+
+// 时间桶:按本地时的「小时」或「日」切分。bucket 是本地时间拼的可排序 key,
+// label 给前端直接显示,避免两端反复换算时区。
+function bucketOf(at, granularity) {
+  const d = new Date(at);
+  const p = (n, w = 2) => String(n).padStart(w, '0');
+  if (granularity === 'hour') {
+    return {
+      bucket: `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:00:00`,
+      label: `${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:00`,
+    };
+  }
+  return {
+    bucket: `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T00:00:00`,
+    label: `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`,
+  };
+}
+
+export function usageTrend(granularity = 'day', prices) {
+  const buckets = new Map();
+  for (const r of readUsageRows()) {
+    const { bucket, label } = bucketOf(r.at, granularity);
+    let b = buckets.get(bucket);
+    if (!b) { b = { bucket, label, input: 0, output: 0, cached: 0, requests: 0 }; buckets.set(bucket, b); }
+    b.input += numTok(r, 'input_tokens');
+    b.output += numTok(r, 'output_tokens');
+    b.cached += numTok(r, 'cached_tokens');
+    b.requests += 1;
+  }
+  return [...buckets.values()]
+    .sort((a, b) => a.bucket.localeCompare(b.bucket))
+    .map((b) => ({ ...b, cost: usageCost(b.input, b.output, b.cached, prices) }));
+}
+
+export function usageByChat(prices) {
+  const chats = new Map();
+  for (const r of readUsageRows()) {
+    let c = chats.get(r.chat_id);
+    if (!c) { c = { id: r.chat_id, title: r.title, input: 0, output: 0, cached: 0, requests: 0, at: r.at }; chats.set(r.chat_id, c); }
+    c.input += numTok(r, 'input_tokens');
+    c.output += numTok(r, 'output_tokens');
+    c.cached += numTok(r, 'cached_tokens');
+    c.requests += 1;
+    if (r.at > c.at) c.at = r.at;
+  }
+  return [...chats.values()]
+    .sort((a, b) => b.at.localeCompare(a.at))
+    .map((c) => ({ ...c, cost: usageCost(c.input, c.output, c.cached, prices) }));
+}
+
+// 单个对话的用量详情:总览 + 该对话自己的时间趋势 + 最近逐条记录。
+// messages 只保留最近 60 条,避免详情页一次拉太多。
+function readUsageRowsForChat(id) {
+  return database().prepare(`SELECT m.chat_id, c.title, m.at, m.seq,
+    json_extract(m.usage, '$.input_tokens') AS input_tokens,
+    json_extract(m.usage, '$.output_tokens') AS output_tokens,
+    json_extract(m.usage, '$.input_tokens_details.cached_tokens') AS cached_tokens
+    FROM messages m JOIN chats c ON c.id = m.chat_id
+    WHERE m.usage IS NOT NULL AND m.chat_id = ? ORDER BY m.at ASC`).all(id);
+}
+
+export function usageChat(id, granularity = 'day', prices) {
+  const rows = readUsageRowsForChat(id);
+  const title = rows[0]?.title ?? '';
+  const totals = { input: 0, output: 0, cached: 0 };
+  const buckets = new Map();
+  const messages = [];
+  for (const r of rows) {
+    totals.input += numTok(r, 'input_tokens');
+    totals.output += numTok(r, 'output_tokens');
+    totals.cached += numTok(r, 'cached_tokens');
+    const { bucket, label } = bucketOf(r.at, granularity);
+    let b = buckets.get(bucket);
+    if (!b) { b = { bucket, label, input: 0, output: 0, cached: 0, requests: 0 }; buckets.set(bucket, b); }
+    b.input += numTok(r, 'input_tokens');
+    b.output += numTok(r, 'output_tokens');
+    b.cached += numTok(r, 'cached_tokens');
+    b.requests += 1;
+    messages.push({
+      seq: r.seq, at: r.at,
+      input: numTok(r, 'input_tokens'),
+      output: numTok(r, 'output_tokens'),
+      cached: numTok(r, 'cached_tokens'),
+      cost: usageCost(numTok(r, 'input_tokens'), numTok(r, 'output_tokens'), numTok(r, 'cached_tokens'), prices),
+    });
+  }
+  messages.reverse(); // 最近的在最上面
+  const points = [...buckets.values()]
+    .sort((a, b) => a.bucket.localeCompare(b.bucket))
+    .map((b) => ({ ...b, cost: usageCost(b.input, b.output, b.cached, prices) }));
+  return {
+    id, title,
+    input: totals.input, output: totals.output, cached: totals.cached,
+    cost: usageCost(totals.input, totals.output, totals.cached, prices),
+    requests: rows.length,
+    at: rows.length ? rows[rows.length - 1].at : null,
+    points,
+    messages: messages.slice(0, 60),
+  };
 }

@@ -75,10 +75,11 @@ export function useAios() {
     }
   }, [currentId, loadingMore, hasMore, items]);
 
+  // 草稿发首条消息会新建对话:返回新对话 id,交给上层把 URL 指过去(显式,不靠反应式 effect 猜)。
   const send = useCallback(
-    async (text: string, images?: string[]) => {
+    async (text: string, images?: string[]): Promise<string | undefined> => {
       const content = text.trim();
-      if (!content && !images?.length) return;
+      if (!content && !images?.length) return undefined;
       if (!currentId) {
         try {
           const chat = await api.createChat({
@@ -87,6 +88,7 @@ export function useAios() {
           });
           await refreshChats();
           await openChat(chat.id);
+          return chat.id;
         } catch (e) {
           setErrors((prev) => [...prev, { id: ++errSeq.current, message: `发送失败: ${(e as Error).message}` }]);
         }
@@ -97,6 +99,7 @@ export function useAios() {
           setErrors((prev) => [...prev, { id: ++errSeq.current, message: `发送失败: ${(e as Error).message}` }]);
         }
       }
+      return undefined;
     },
     [currentId, refreshChats, openChat],
   );
@@ -196,13 +199,10 @@ export function useAios() {
           case 'done':
             if (d.chatId === currentId) {
               setStreams({ message: '', reasoning: '' });
-              // 重新拉取最新 items(流式行可能不完整);meta 也刷一次,带回 usage 聚合
-              api.listItemsPage(d.chatId, undefined, PAGE_SIZE)
-                .then((page) => {
-                  setItems((current) => mergeRows(current, page.items));
-                  setHasMore(page.hasMore);
-                })
-                .catch(() => {});
+              // 不重拉 items:每条定稿行内核都已通过 item 事件送达(见 kernel/loop.js),
+              // items 此刻已是完整权威;漏事件由 gap 事件兜底重载。这里重拉只会换掉行对象
+              // 引用逼整页重渲染,和收尾时的布局折叠撞在一起,造成消息「删一下」。
+              // 只刷 meta 带回 usage 聚合。
               api.getChat(d.chatId).then(setMeta).catch(() => {});
             }
             refreshChats();

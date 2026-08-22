@@ -7,10 +7,8 @@ import { Thread } from './components/Thread';
 import { Composer, type ComposerSeed } from './components/Composer';
 import { StatusLine } from './components/StatusLine';
 import { Settings } from './components/Settings';
-import { Skills } from './components/Skills';
-import { Tools } from './components/Tools';
 import { RestartModal } from './components/RestartModal';
-import { chatRoute, useHashRoute, type Route } from './router';
+import { chatRoute, useRoute, type Route } from './router';
 
 const isMobile = () => window.matchMedia('(max-width: 768px)').matches;
 
@@ -29,7 +27,7 @@ function routeToView(route: Route): View {
 
 export default function App() {
   const aios = useAios();
-  const [route, navigate] = useHashRoute();
+  const [route, navigate] = useRoute();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [seed, setSeed] = useState<ComposerSeed | null>(null);
@@ -56,31 +54,13 @@ export default function App() {
   }, []);
 
   // ── URL → 对话状态 ──
-  // chat 视图且指定 id:打开它;draft(#/new):切到新对话。
-  // 空 hash(#/)的默认打开由下面「首个对话」effect 处理,这里不碰。
+  // 只有「指定了 id」才反应式打开对话;进新对话页 / 建对话的跳转都由动作显式完成
+  //(见 onNew / onSend),这样两边不会互相打架把 URL 拽来拽去。启动停在新对话页。
   useEffect(() => {
-    if (route.name !== 'chat') return;
-    if (route.id) {
-      if (aios.currentId !== route.id) aios.openChat(route.id);
-    } else if (route.draft && aios.currentId !== null) {
-      aios.draft();
+    if (route.name === 'chat' && route.id && aios.currentId !== route.id) {
+      aios.openChat(route.id);
     }
   }, [route, aios]);
-
-  // 空 hash 且无明确目标:恢复旧行为,自动打开第一个对话(replace 掉空 URL)
-  useEffect(() => {
-    if (route.name === 'chat' && !route.draft && !aios.currentId && aios.chats.length > 0) {
-      const first = aios.chats[0].id;
-      navigate(chatRoute(first), true);
-    }
-  }, [route, aios, navigate]);
-
-  // 对话状态 → URL:draft 里新建了对话(发首条消息)后,把 URL 指过去
-  useEffect(() => {
-    if (route.name === 'chat' && !route.id && aios.currentId) {
-      navigate(chatRoute(aios.currentId));
-    }
-  }, [aios.currentId, route, navigate]);
 
   // 对话被删后,若 URL 仍指向它,退回新对话
   useEffect(() => {
@@ -92,7 +72,7 @@ export default function App() {
   const appId = route.name === 'app' ? route.id : null;
   const title = appId
     ? (apps.find((one) => one.id === appId)?.name ?? appId)
-    : route.name === 'settings' ? '设置' : route.name === 'tools' ? '工具' : route.name === 'skills' ? 'Skills' : (aios.meta ? aios.meta.title || aios.currentId || '新对话' : '新对话');
+    : route.name === 'settings' ? '设置' : (aios.meta ? aios.meta.title || aios.currentId || '新对话' : '新对话');
   const bodyClass = [sidebarOpen ? 'sidebar-open' : '', sidebarCollapsed ? 'sidebar-collapsed' : '']
     .filter(Boolean)
     .join(' ');
@@ -108,9 +88,7 @@ export default function App() {
         chats={aios.chats}
         currentId={route.name === 'chat' ? aios.currentId : null}
         onOpen={(id) => { navigate(chatRoute(id)); }}
-        onNew={() => { navigate(chatRoute(null, true)); }}
-        onTools={() => { navigate({ name: 'tools' }); closeSidebar(); }}
-        onSkills={() => { navigate({ name: 'skills' }); closeSidebar(); }}
+        onNew={() => { aios.draft(); navigate(chatRoute(null, true)); }}
         onSettings={() => { route.name === 'settings' ? backToChat() : navigate({ name: 'settings' }); closeSidebar(); }}
         onApp={(id) => { navigate({ name: 'app', id }); closeSidebar(); }}
         onPin={aios.pin}
@@ -129,7 +107,7 @@ export default function App() {
           onRename={(t) => { if (aios.currentId) aios.rename(aios.currentId, t); }}
           onDelete={aios.remove}
         />
-        {appId ? <AppHost key={appId} id={appId} /> : route.name === 'settings' ? <Settings /> : route.name === 'tools' ? <Tools /> : route.name === 'skills' ? <Skills /> : (
+        {appId ? <AppHost key={appId} id={appId} /> : route.name === 'settings' ? <Settings /> : (
           <>
             <Thread
               key={aios.currentId ?? 'draft'}
@@ -144,7 +122,15 @@ export default function App() {
               onLoadMore={aios.loadMore}
               onStarter={onStarter}
             />
-            <Composer onSend={aios.send} busy={busy} onStop={aios.stop} seed={seed} />
+            <Composer
+              onSend={async (text, images) => {
+                const newId = await aios.send(text, images);
+                if (newId) navigate(chatRoute(newId)); // 新建对话:URL 显式指过去
+              }}
+              busy={busy}
+              onStop={aios.stop}
+              seed={seed}
+            />
             <StatusLine items={aios.items} meta={aios.meta} />
           </>
         )}

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import * as api from '../api';
 import type { RestartRequest } from '../types';
-import { chatRoute, setHashSilently } from '../router';
+import { chatRoute, setRouteSilently } from '../router';
 
 type Phase = 'pending' | 'restarting' | 'repairing' | 'failed';
 
@@ -9,7 +9,7 @@ const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /** 重启成功、reload 之前把 URL 指回申请里指定的对话(如果给了),保证重启后能回到原对话。 */
 function jumpToTarget(request: RestartRequest | null) {
-  if (request?.target_chat) setHashSilently(chatRoute(request.target_chat));
+  if (request?.target_chat) setRouteSilently(chatRoute(request.target_chat));
 }
 
 async function waitForNewApp(previousId: string, timeoutMs: number): Promise<boolean> {
@@ -78,6 +78,14 @@ export function RestartModal() {
   const baselineId = useRef('');
   const kernelPort = useRef(9522);
   const appPort = useRef(9523);
+  const detailRef = useRef<HTMLPreElement>(null);
+  const pinnedToBottom = useRef(true);
+
+  // 自愈日志流式增长时贴着底部;用户手动上滚看历史则不打断。
+  useEffect(() => {
+    const el = detailRef.current;
+    if (el && pinnedToBottom.current) el.scrollTop = el.scrollHeight;
+  }, [detail]);
 
   useEffect(() => {
     Promise.all([api.getHealth(), api.getConfig(), api.getPendingRestart()]).then(([health, config, pending]) => {
@@ -107,7 +115,7 @@ export function RestartModal() {
     try {
       await Promise.race([
         healthWatch.then((ok) => { if (ok) { jumpToTarget(request); location.reload(); } }),
-        runRepair(kernelPort.current, appPort.current, current, (text) => setDetail((value) => (value + text).slice(-2000))),
+        runRepair(kernelPort.current, appPort.current, current, (text) => setDetail((value) => (value + text).slice(-100_000))),
       ]);
       if (await waitForNewApp(oldId, 15_000)) {
         jumpToTarget(request);
@@ -153,7 +161,16 @@ export function RestartModal() {
         <h2 className="modal-title" id="restart-title">{phase === 'pending' ? '需要重启 App' : phase === 'restarting' ? '正在重启' : phase === 'repairing' ? 'AI 正在自愈' : '重启失败'}</h2>
         <p className="restart-summary">{request.summary}</p>
         {request.reason && <p className="restart-reason">{request.reason}</p>}
-        {detail && <pre className="restart-detail">{detail}</pre>}
+        {detail && (
+          <pre
+            ref={detailRef}
+            className="restart-detail"
+            onScroll={(e) => {
+              const el = e.currentTarget;
+              pinnedToBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 24;
+            }}
+          >{detail}</pre>
+        )}
         <div className="modal-foot">
           {phase === 'pending' && <><button className="btn btn-plain" onClick={cancel}>取消</button><button className="btn btn-primary" onClick={confirm}>确认重启</button></>}
           {phase === 'failed' && <button className="btn btn-primary" onClick={() => repair(request)}>重试自愈</button>}

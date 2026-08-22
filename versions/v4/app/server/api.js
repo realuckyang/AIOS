@@ -4,7 +4,8 @@ import * as run from './run.js';
 import * as events from './events.js';
 import { getConfig, publicSchema, updateConfig } from './config.js';
 import { getSkill, listSkills } from './skills.js';
-import { saveFile } from './files.js';
+import * as skillstore from './skillstore.js';
+import { saveFile, saveImage, sniffImageMime, isFileRef, sendFileRef } from './files.js';
 import { getTool, listTools } from './tools.js';
 
 function json(res, code, data) {
@@ -38,7 +39,22 @@ function withStatus(meta) {
 }
 
 const INPUT_SOURCES = new Set(['user', 'runtime']);
-// 标准 Responses 输入消息:文本 + 图片(input_image,image_url 为 data: 或 http(s) URL)
+// 入库前把图片落盘换成 aios-file:// 引用;http(s)/已是引用的原样留。
+// 不认的格式抛错(上层转 400)——顺带按魔数校验,不信浏览器给的 mime。
+function persistImages(images = []) {
+  return images.map((url) => {
+    const s = String(url);
+    if (isFileRef(s) || /^https?:\/\//.test(s)) return s;
+    const m = /^data:[^;,]*;base64,(.+)$/s.exec(s);
+    if (!m) throw new Error('图片必须是 base64 data URL、http(s) URL 或本地引用');
+    const buf = Buffer.from(m[1], 'base64');
+    const mime = sniffImageMime(buf);
+    if (!mime) throw new Error('不支持的图片格式(仅 jpeg/png/gif/webp)');
+    return saveImage(buf, mime);
+  });
+}
+
+// 标准 Responses 输入消息:文本 + 图片。image_url 存 aios-file:// 引用(发模型时才内联字节)
 const inputItem = (content, images = []) => ({
   type: 'message',
   role: 'user',
@@ -95,6 +111,12 @@ export async function handleApi(req, res, {
       return true;
     }
 
+    // 图片引用取回:GET /api/files/<basename> 流式吐 var/files 里的图,给 UI <img> 用
+    if (parts[1] === 'files' && parts.length === 3 && req.method === 'GET') {
+      sendFileRef(res, decodeURIComponent(parts[2]));
+      return true;
+    }
+
     if (parts[1] === 'skills' && req.method === 'GET') {
       if (parts.length === 2) json(res, 200, listSkills());
       else {
@@ -111,6 +133,39 @@ export async function handleApi(req, res, {
         const tool = getTool(parts[2]);
         if (tool) json(res, 200, tool);
         else json(res, 404, { error: `工具不存在: ${parts[2]}` });
+      }
+      return true;
+    }
+
+    // 技能商店:代理讯飞 skillhub 公开 API 供浏览,并把技能包装进本地 skills/。
+    if (parts[1] === 'skills-store') {
+      const sub = parts[2];
+      if (sub === 'list' && req.method === 'GET') {
+        const cursor = url.searchParams.get('cursor') ?? undefined;
+        json(res, 200, await skillstore.listStoreSkills(cursor));
+      } else if (sub === 'skill' && req.method === 'GET') {
+        const slug = url.searchParams.get('slug');
+        if (!slug) json(res, 400, { error: '需要 slug 查询参数' });
+        else json(res, 200, await skillstore.getStoreSkill(slug));
+      } else if (sub === 'installed' && req.method === 'GET') {
+        json(res, 200, { slugs: skillstore.listInstalled() });
+      } else if (sub === 'uninstall' && req.method === 'POST') {
+        const body = await readBody(req, config.requestBodyMaxBytes);
+        const slug = typeof body.slug === 'string' ? body.slug : '';
+        if (!slug) { json(res, 400, { error: '需要 slug' }); return true; }
+        try { json(res, 200, skillstore.uninstallSkill(slug)); }
+        catch (err) { json(res, 400, { error: String(err?.message ?? err) }); }
+      } else if (sub === 'install' && req.method === 'POST') {
+        const body = await readBody(req, config.requestBodyMaxBytes);
+        const slug = typeof body.slug === 'string' ? body.slug : '';
+        if (!slug) { json(res, 400, { error: '需要 slug' }); return true; }
+        try {
+          json(res, 200, await skillstore.installSkill(slug, { force: Boolean(body.force) }));
+        } catch (err) {
+          json(res, 400, { error: String(err?.message ?? err) });
+        }
+      } else {
+        json(res, 404, { error: 'not found' });
       }
       return true;
     }
@@ -187,6 +242,37 @@ export async function handleApi(req, res, {
       return true;
     }
 
+    // 用量/成本:usage 应用的命名端点。聚合 messages 里带 usage 的行,换算成本。
+    if (parts[1] === 'usage') {
+      const prices = {
+        input: Number(config.priceInputPerMTokens) || 0,
+        cached: Number(config.priceCachedPerMTokens) || 0,
+        output: Number(config.priceOutputPerMTokens) || 0,
+      };
+      const hasPrice = prices.input > 0 || prices.output > 0;
+      const currency = config.priceCurrency;
+      if (parts.length === 2 && req.method === 'GET') {
+        json(res, 200, { ...store.usageOverview(prices), currency, hasPrice });
+      } else if (parts[2] === 'trend' && req.method === 'GET') {
+        const granularity = url.searchParams.get('granularity') === 'hour' ? 'hour' : 'day';
+        json(res, 200, { granularity, currency, hasPrice, points: store.usageTrend(granularity, prices) });
+      } else if (parts[2] === 'chats') {
+        if (parts[3] && req.method === 'GET') {
+          const granularity = url.searchParams.get('granularity') === 'hour' ? 'hour' : 'day';
+          const chat = store.usageChat(parts[3], granularity, prices);
+          if (chat) json(res, 200, { currency, hasPrice, granularity, chat });
+          else json(res, 404, { error: `对话不存在: ${parts[3]}` });
+        } else if (req.method === 'GET') {
+          json(res, 200, { currency, hasPrice, chats: store.usageByChat(prices) });
+        } else {
+          json(res, 404, { error: 'not found' });
+        }
+      } else {
+        json(res, 404, { error: 'not found' });
+      }
+      return true;
+    }
+
     if (parts[1] === 'system' && parts[2] === 'restarts') {
       const id = parts[3];
       if (!id && req.method === 'POST') {
@@ -237,9 +323,12 @@ export async function handleApi(req, res, {
         json(res, 400, { error: 'message 需要非空 content 或 images(字符串数组)' });
         return true;
       }
+      let images;
+      try { images = persistImages(body.message?.images ?? []); }
+      catch (e) { json(res, 400, { error: e.message }); return true; }
       const meta = store.createChat({ title: body.title ?? '', description: body.description ?? '' });
       if (hasMessage) {
-        const row = store.appendItem(meta.id, { source: body.message.source, item: inputItem(body.message.content, body.message.images ?? []) });
+        const row = store.appendItem(meta.id, { source: body.message.source, item: inputItem(body.message.content, images) });
         events.publish('input', { chatId: meta.id, row });
         run.wake(meta.id, { kernelPort, appPort });
       }
@@ -284,7 +373,10 @@ export async function handleApi(req, res, {
       if (!validInput(body.content, body.images)) json(res, 400, { error: '需要非空 content 或 images(字符串数组)' });
       else if (!INPUT_SOURCES.has(body.source)) json(res, 400, { error: 'source 必须是 user 或 runtime' });
       else {
-        const row = store.appendItem(id, { source: body.source, item: inputItem(body.content, body.images ?? []) });
+        let images;
+        try { images = persistImages(body.images ?? []); }
+        catch (e) { json(res, 400, { error: e.message }); return true; }
+        const row = store.appendItem(id, { source: body.source, item: inputItem(body.content, images) });
         events.publish('input', { chatId: id, row });
         run.wake(id, { kernelPort, appPort });
         json(res, 201, { seq: row.seq });

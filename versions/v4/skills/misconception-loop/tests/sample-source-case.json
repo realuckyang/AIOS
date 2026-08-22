@@ -1,0 +1,10 @@
+{
+  "case_id": "anonymous-16bb4742fb54",
+  "mode": "diagnosis",
+  "subject": "初中数学",
+  "grade": "七年级",
+  "problem": "解方程：2x - 3 = 7",
+  "student_work": "2x = 7 - 3，所以 x = 2",
+  "reference_answer": "x = 5",
+  "context": {"assessment_active": false, "source": "错题复盘"}
+}

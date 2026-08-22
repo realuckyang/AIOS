@@ -9,16 +9,15 @@ import { memo, useState, type MouseEvent as ReactMouseEvent, type ReactNode } fr
 import type { ChatMeta } from '../types';
 import { apps } from '../apps';
 import { Icon } from './Icon';
+import { useEnterSubmit } from '../hooks/useEnterSubmit';
 
-export type View = 'chat' | 'settings' | 'tools' | 'skills' | `app:${string}`;
+export type View = 'chat' | 'settings' | `app:${string}`;
 
 interface SidebarProps {
   chats: ChatMeta[];
   currentId: string | null;
   onOpen: (id: string) => void;
   onNew: () => void;
-  onTools: () => void;
-  onSkills: () => void;
   onSettings: () => void;
   onApp: (id: string) => void;
   onPin: (id: string, pinned: boolean) => void;
@@ -45,7 +44,7 @@ function Group({ storageKey, label, children }: { storageKey: string; label: str
 }
 
 export const Sidebar = memo(function Sidebar({
-  chats, currentId, onOpen, onNew, onTools, onSkills, onSettings, onApp,
+  chats, currentId, onOpen, onNew, onSettings, onApp,
   onPin, onRename, onDelete, activeView,
 }: SidebarProps) {
   const pinned = chats.filter((chat) => chat.pinned_at)
@@ -74,6 +73,7 @@ export const Sidebar = memo(function Sidebar({
     setEditing(null);
     setDraft('');
   };
+  const enter = useEnterSubmit(confirmRename);
 
   const row = (chat: ChatMeta) => {
     const isPinned = !!chat.pinned_at;
@@ -81,8 +81,8 @@ export const Sidebar = memo(function Sidebar({
     return (
       <li key={chat.id} className={chat.id === currentId ? 'active' : ''} onClick={() => onOpen(chat.id)}>
         <button type="button" className="row-title" onClick={() => onOpen(chat.id)} title={chat.title || chat.id}>
-          <span className="t">{chat.title || chat.id}</span>
           {chat.status === 'running' && <span className="s running" title="运行中" />}
+          <span className="t">{chat.title || chat.id}</span>
         </button>
         <span className="row-actions">
           <button
@@ -113,35 +113,23 @@ export const Sidebar = memo(function Sidebar({
   return (
     <aside id="sidebar">
       <header id="sidebar-brand"><span className="brand">AIOS</span></header>
+      {/* 功能区:新对话(创建)+ 所有视图,平铺一列。工具/Skills/待办… 全来自 apps 注册表,
+          没有硬编码特例;agent 造新功能就是往这条列表加一行。 */}
       <nav id="sidebar-functions" aria-label="功能">
         <button className={activeView === 'chat' && !currentId ? 'active' : ''} onClick={onNew}>
           <Icon name="plus" size={15} /><span>新对话</span>
         </button>
-        <button className={activeView === 'tools' ? 'active' : ''} onClick={onTools}>
-          <Icon name="tool" size={15} /><span>工具</span>
-        </button>
-        <button className={activeView === 'skills' ? 'active' : ''} onClick={onSkills}>
-          <Icon name="skill" size={15} /><span>Skills</span>
-        </button>
+        {apps.map((app) => (
+          <button
+            key={app.id}
+            className={activeView === `app:${app.id}` ? 'active' : ''}
+            title={app.description}
+            onClick={() => onApp(app.id)}
+          >
+            <Icon name={app.icon} size={15} /><span>{app.name}</span>
+          </button>
+        ))}
       </nav>
-      {apps.length > 0 && (
-        <section id="sidebar-apps">
-          <Group storageKey="aios.sidebar.apps-folded" label="应用">
-            <nav aria-label="应用">
-              {apps.map((app) => (
-                <button
-                  key={app.id}
-                  className={activeView === `app:${app.id}` ? 'active' : ''}
-                  title={app.description}
-                  onClick={() => onApp(app.id)}
-                >
-                  <Icon name={app.icon} size={15} /><span>{app.name}</span>
-                </button>
-              ))}
-            </nav>
-          </Group>
-        </section>
-      )}
       <section id="sidebar-history">
         {pinned.length > 0 && (
           <Group storageKey="aios.sidebar.pinned-folded" label="置顶">
@@ -184,8 +172,10 @@ export const Sidebar = memo(function Sidebar({
               autoFocus
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
+              onCompositionStart={enter.onCompositionStart}
+              onCompositionEnd={enter.onCompositionEnd}
               onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.nativeEvent.isComposing) confirmRename();
+                enter.onKeyDown(e);
                 if (e.key === 'Escape') setEditing(null);
               }}
             />

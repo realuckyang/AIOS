@@ -23,13 +23,20 @@ function itemText(item: Item): string {
   return [...summary, ...parts].map((part) => String((part as { text?: string })?.text ?? '')).join('');
 }
 
+// 库里图片存的是 aios-file:// 引用(字节在 var/files),渲染时换成取回端点给 <img>;
+// data:/http(s) 原样(旧数据或外链)。
+function imageSrc(url: string): string {
+  return url.startsWith('aios-file://') ? `/api/files/${encodeURIComponent(url.slice('aios-file://'.length))}` : url;
+}
+
 function itemImages(item: Item): string[] {
   const content = (item as { content?: unknown }).content;
   const parts = Array.isArray(content) ? content : [];
   return parts
     .filter((part) => (part as { type?: string })?.type === 'input_image')
     .map((part) => String((part as { image_url?: string }).image_url ?? ''))
-    .filter(Boolean);
+    .filter(Boolean)
+    .map(imageSrc);
 }
 
 function safeParse(raw = ''): Record<string, unknown> {

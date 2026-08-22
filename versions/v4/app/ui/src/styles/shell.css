@@ -27,17 +27,6 @@
 /* ── 可折叠组:标题整行就是开合开关,状态跨启动记在 localStorage ── */
 /* 组与组之间的距离统一由 .sidebar-group 的上边距拉开 */
 .sidebar-group { margin-top: 14px; }
-#sidebar-apps { flex: none; }
-#sidebar-apps nav { display: flex; flex-direction: column; gap: 2px; }
-#sidebar-apps nav button {
-    display: flex; align-items: center; gap: 8px;
-    padding: 7px 10px; border-radius: var(--r-m);
-    font-size: 13px; color: var(--ink2); text-align: left;
-    transition: background .12s, color .12s;
-}
-#sidebar-apps nav button svg { color: var(--ink-3); flex: none; }
-#sidebar-apps nav button:hover { background: var(--row-hover); color: var(--ink); }
-#sidebar-apps nav button.active { background: var(--select); color: var(--ink); box-shadow: var(--shadow-s); }
 .sidebar-group-title {
     display: flex; align-items: center; width: 100%;
     padding: 4px 10px 6px; text-align: left;
@@ -179,8 +168,30 @@
 .input-text { font-size: 12.5px; line-height: 1.6; resize: vertical; }
 .input:focus { border-color: var(--line-hi); box-shadow: 0 0 0 3px var(--well); }
 .input::placeholder { color: var(--ink-4); }
-.set-foot { max-width: 640px; margin-top: 16px; font-size: 11.5px; min-height: 18px; }
-.set-hint { color: var(--ink-4); }
+/* 保存条:每个 tab 一个,贴在这一页底下 */
+.set-actions {
+    max-width: 640px; margin-top: 20px; padding-top: 16px;
+    border-top: 1px solid var(--line-soft);
+    display: flex; align-items: center; gap: 10px;
+    font-size: 11.5px;
+}
+.btn-save {
+    border: 1px solid var(--line); border-radius: var(--r-m);
+    background: var(--ink2); color: var(--panel);
+    padding: 7px 16px; font-size: 12.5px; cursor: pointer;
+    transition: opacity .15s;
+}
+.btn-save:hover:not(:disabled) { opacity: .88; }
+.btn-save:disabled { background: none; color: var(--ink-4); cursor: default; }
+.btn-discard {
+    border: 1px solid var(--line-soft); border-radius: var(--r-m);
+    background: none; color: var(--ink-4);
+    padding: 7px 13px; font-size: 12.5px; cursor: pointer;
+}
+.btn-discard:hover:not(:disabled) { color: var(--ink2); border-color: var(--line); }
+
+/* 改过的字段只把边框提一下 —— 安静地标出来,不挂角标 */
+.field.is-dirty .input { border-color: var(--line-hi); }
 .settings-error { color: var(--bad); }
 .settings-notice { color: var(--ok-ink); }
 

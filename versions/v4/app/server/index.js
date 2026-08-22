@@ -9,6 +9,7 @@ import crypto from 'node:crypto';
 import { handleApi } from './api.js';
 import { completeRestartRequests, ensureVarDir } from './store.js';
 import { configure as configureEvents } from './events.js';
+import { seedDefaults } from './config.js';
 import { getConfig } from './config.js';
 import { RUN_DIR } from '../../host.js';
 
@@ -33,6 +34,7 @@ const MIME = {
 };
 
 ensureVarDir();          // settings 表在库里,所以配置要等库就绪之后才合并
+seedDefaults();          // 把默认值写进库 —— 库从此是完整的当前状态,不再只存「改过的」
 configureEvents(getConfig());
 completeRestartRequests(INSTANCE_ID);
 

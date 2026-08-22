@@ -1,6 +1,7 @@
 // 顶栏:菜单按钮 + 标题 + 更多(重命名 / 删除)。停止在输入区,跟着发送走。
 import { memo, useState } from 'react';
 import { Icon } from './Icon';
+import { useEnterSubmit } from '../hooks/useEnterSubmit';
 
 interface ChatHeaderProps {
   title: string;
@@ -22,6 +23,7 @@ export const ChatHeader = memo(function ChatHeader({ title, hasChat, pinned, onT
     setDraft(null);
     if (next && next !== title) onRename(next);
   };
+  const enter = useEnterSubmit(confirmRename);
 
   return (
     <header id="chat-header">
@@ -84,8 +86,10 @@ export const ChatHeader = memo(function ChatHeader({ title, hasChat, pinned, onT
               autoFocus
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
+              onCompositionStart={enter.onCompositionStart}
+              onCompositionEnd={enter.onCompositionEnd}
               onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.nativeEvent.isComposing) confirmRename();
+                enter.onKeyDown(e);
                 if (e.key === 'Escape') setDraft(null);
               }}
             />

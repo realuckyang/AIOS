@@ -1,4 +1,5 @@
-// 应用注册表。应用不是独立发行物,就是 App UI 里的视图,归类到侧栏「应用」组。
+// 应用注册表。应用不是独立发行物,就是 App UI 里的视图,平铺在侧栏功能区(新对话之下)。
+// 工具、Skills 也是普通 app(apps/tools、apps/skills),没有硬编码特例:侧栏中段全来自这里。
 //
 // 约定:一个应用 = src/apps/<id>/ 一个目录,内含
 //   meta.ts    导出 `meta`(名字、图标、描述)—— 打进主包,侧栏列表用
@@ -14,6 +15,8 @@ export interface AppMeta {
   /** components/Icon.tsx 里的图标名 */
   icon: string;
   description?: string;
+  /** 侧栏排序权重(小在前);不填默认 100,按名字排在带权重的之后 */
+  order?: number;
 }
 
 const metaModules = import.meta.glob<{ meta: Omit<AppMeta, 'id'> }>('./*/meta.ts', { eager: true });
@@ -21,7 +24,7 @@ const viewModules = import.meta.glob<{ default: ComponentType }>('./*/index.tsx'
 
 export const apps: AppMeta[] = Object.entries(metaModules)
   .map(([file, mod]) => ({ ...mod.meta, id: file.split('/')[1] }))
-  .sort((a, b) => a.name.localeCompare(b.name));
+  .sort((a, b) => (a.order ?? 100) - (b.order ?? 100) || a.name.localeCompare(b.name));
 
 const views = new Map<string, LazyExoticComponent<ComponentType>>();
 

@@ -111,6 +111,8 @@ export const Thread = memo(function Thread({
         const entry = list[i];
         if (entry.kind === 'text' && !entry.row.streaming) { finalIndex = i; break; }
       }
+      // 不变量:轮还活着 → 全平铺、按 seq 顺序(此刻无从判断哪条是最终答案,
+      // 中间叙述文本也是 text,谁都不能抬)。轮完成才折叠过程、抬出真正的最后一条正文。
       if (live || finalIndex < 0) {
         output.push({ kind: 'flat', key: `flat:${turnKey}`, items: list });
       } else {

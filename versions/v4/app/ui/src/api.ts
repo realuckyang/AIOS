@@ -1,5 +1,5 @@
 // App API 客户端；对话、持久化、调度和 UI 事件都由 app/server 提供。
-import type { AppHealth, ConfigSchema, ChatMeta, Memory, RestartRequest, Row, SkillDetail, SkillSummary, Todo, ToolDetail, ToolSummary } from './types';
+import type { AppHealth, ConfigSchema, ChatMeta, Memory, RestartRequest, Row, SkillDetail, SkillSummary, StoreSkill, StoreSkillDetail, Todo, ToolDetail, ToolSummary, UsageByChat, UsageOverview, UsageTrend } from './types';
 
 const base = '/api';
 
@@ -55,3 +55,16 @@ export const patchMemory = (id: string, data: { title?: string; body?: string; t
   request<Memory>('PATCH', `/memories/${id}`, data);
 export const deleteMemory = (id: string) => request<{ ok: boolean }>('DELETE', `/memories/${id}`);
 export const listMemoryTags = () => request<{ tag: string; count: number }[]>('GET', '/memories/tags');
+export const getUsage = () => request<UsageOverview>('GET', '/usage');
+export const getUsageTrend = (granularity: 'day' | 'hour' = 'day') => request<UsageTrend>('GET', `/usage/trend?granularity=${granularity}`);
+export const getUsageChats = () => request<UsageByChat>('GET', '/usage/chats');
+// ---------- 技能商店 ----------
+export const listStoreSkills = (cursor?: string) =>
+  request<{ items: StoreSkill[]; nextCursor: string | null }>('GET', `/skills-store/list${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''}`);
+export const getStoreSkill = (slug: string) =>
+  request<StoreSkillDetail>('GET', `/skills-store/skill?slug=${encodeURIComponent(slug)}`);
+export const listInstalled = () => request<{ slugs: string[] }>('GET', '/skills-store/installed');
+export const installStoreSkill = (slug: string, force = false) =>
+  request<{ ok: boolean; slug: string; files?: string[]; reason?: string }>('POST', '/skills-store/install', { slug, force });
+export const uninstallStoreSkill = (slug: string) =>
+  request<{ ok: boolean; slug: string; reason?: string }>('POST', '/skills-store/uninstall', { slug });
