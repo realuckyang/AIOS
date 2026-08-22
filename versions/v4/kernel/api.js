@@ -3,9 +3,18 @@ import http from 'node:http';
 import path from 'node:path';
 import * as run from './run.js';
 import * as llm from './llm.js';
+import { creds } from './creds.js';
 import { readJsonBody, writeJson, writeSSE } from './utils.js';
 
 const json = (res, code, data) => writeJson(res, code, data);
+
+// 正常路径:凭据由 App 随请求传进来(App 是唯一真相)。取到就用,取不到才落到 env.json 兜底。
+function bodyCreds(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  const { responsesUrl, apiKey, model } = raw;
+  if ([responsesUrl, apiKey, model].every((v) => typeof v === 'string')) return { responsesUrl, apiKey, model };
+  return null;
+}
 
 // 只认这几个键,只认合法值:下发通道不该能改凭据、端口或 guard 路径。
 const RUN_OPTION_KEYS = new Set([
@@ -59,10 +68,11 @@ export function startServer({ config, instructions }) {
         if (!Array.isArray(body.input)) return json(res, 400, { error: 'input 必须是数组' });
         const controller = new AbortController();
         res.on('close', () => controller.abort());
+        const live = bodyCreds(body.creds) ?? creds(config);   // App 传的优先,否则 env.json 兜底
         const { items, usage } = await llm.request({
-          url: config.responsesUrl,
-          apiKey: config.apiKey,
-          model: typeof body.model === 'string' && body.model ? body.model : config.model,
+          url: live.responsesUrl,
+          apiKey: live.apiKey,
+          model: typeof body.model === 'string' && body.model ? body.model : live.model,
           instructions: typeof body.instructions === 'string' ? body.instructions : '',
           input: body.input,
           tools: [],
@@ -79,8 +89,9 @@ export function startServer({ config, instructions }) {
         if (typeof body.runId !== 'string' || !body.runId) return json(res, 400, { error: 'runId 必须是非空字符串' });
         if (!Array.isArray(body.input)) return json(res, 400, { error: 'input 必须是数组' });
         if (run.isRunning(body.runId)) return json(res, 409, { error: `run 已在执行: ${body.runId}` });
-        // 执行参数由 App 随 run 下发,凭据与自身服务器参数仍只来自文件
-        const runConfig = { ...config, ...runOptions(body.options, config) };
+        // 凭据由 App 随请求传进来(它是唯一真相,设置页改完即时生效);App 缺席时(自愈直连)
+        // 落到 env.json 兜底。执行参数走 options 下发;端口/guard 等自身服务器参数仍只来自文件。
+        const runConfig = { ...config, ...(bodyCreds(body.creds) ?? creds(config)), ...runOptions(body.options, config) };
 
         res.writeHead(200, {
           'content-type': 'text/event-stream',
