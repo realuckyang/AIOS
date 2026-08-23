@@ -1,0 +1,87 @@
+#!/usr/bin/env node
+// AIOS Browser Control — 同步工具
+// 用法: qq/工具调用传入 {action, url?, code?}
+// 内部: 确保本地通信服务在跑 → 下发指令 → 同步等待扩展执行结果 → 返回 JSON
+import { spawn } from "node:child_process";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+// server 在根/skills/browserctl/server.js（相对于本工具 bin/tools）
+const SERVER_PATH = path.resolve(__dirname, "../../skills/browserctl/server.js");
+const BASE = "http://127.0.0.1:9524";
+
+const reply = (value) => process.stdout.write(`${JSON.stringify(value)}\n`);
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+async function ping() {
+  try {
+    const r = await fetch(`${BASE}/ping`);
+    return (await r.json()).ok === true;
+  } catch {
+    return false;
+  }
+}
+
+function ensureServer() {
+  // 若服务没跑，尝试以 detached 方式拉起（脱离进程组以跨调用存活）
+  spawn(process.execPath, [SERVER_PATH], { detached: true, stdio: "ignore" }).unref();
+}
+
+async function waitResult(requestId, waitSec) {
+  const end = Date.now() + waitSec * 1000;
+  while (Date.now() < end) {
+    await sleep(1000);
+    try {
+      const r = await fetch(`${BASE}/results?id=${requestId}`);
+      const data = await r.json();
+      if (data) return data;
+    } catch {
+      // 服务重启等，继续
+    }
+  }
+  return null;
+}
+
+async function main() {
+  const input = JSON.parse(fs.readFileSync(0, "utf8") || "{}");
+  const action = input.action;
+  if (!action) throw new Error("action 必填");
+  if (!["getTabInfo", "listTabs", "navigate", "run"].includes(action)) {
+    throw new Error(`未知 action: ${action}`);
+  }
+
+  if (!(await ping())) ensureServer();
+  for (let i = 0; i < 5; i++) {
+    if (await ping()) break;
+    await sleep(300);
+  }
+  if (!(await ping())) throw new Error("无法连接本地通信服务 127.0.0.1:9524，请确认它在运行");
+
+  const payload = {};
+  if (action === "navigate") {
+    if (!input.url) throw new Error("navigate 需要 url");
+    payload.url = input.url;
+  } else if (action === "run") {
+    if (typeof input.code !== "string") throw new Error("run 需要 code");
+    payload.code = input.code;
+  }
+
+  const cmdResp = await fetch(`${BASE}/command`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ type: action, payload }),
+  }).then((r) => r.json());
+  const requestId = cmdResp.requestId;
+
+  const result = await waitResult(requestId, input.wait_sec ?? 60);
+  if (!result) throw new Error(`等待结果超时，requestId=${requestId}`);
+  reply({ ok: true, action, result });
+}
+
+main().catch((err) => {
+  reply({ ok: false, error: String(err?.message ?? err) });
+  process.exitCode = 1;
+});

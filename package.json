@@ -5,6 +5,10 @@
   "engines": { "node": ">=22" },
   "scripts": {
     "start": "node boot.js",
-    "stop": "node stop.js"
+    "stop": "node stop.js",
+    "kernel": "node kernel/index.js",
+    "app": "node app/index.js",
+    "cli": "cd cli && node_modules/.bin/tsx src/index.ts",
+    "build": "cd app && npm run build"
   }
 }

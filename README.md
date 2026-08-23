@@ -29,10 +29,10 @@ agent 可以为自己编写新工具并注册进来。调用方式同样开放:a
 
 **改得动,是因为退得回。** 四件事撑着这一点:
 
-- **Boot 在系统之外**,只做三件事——启动进程、交出环境、隔离版本。
-  它不认识任何版本目录的名字,跑哪一版由 `etc/current.json` 这个指针决定;
-- **版本目录只装代码**,`var/` 与 `etc/env.json` 在版本之外,所以回滚不丢对话;
-- **新版起不来会自动退回**,连续三次启动失败即回落到 `backup`,不需要人守在终端前;
+- **Boot 在系统之外**,只做两件事——启动进程、交出环境;
+- **代码与事实分开**,`var/` 与 `etc/env.json` 不在代码里,所以回滚不丢对话;
+- **回滚交给 Git**:代码直接摆在根目录,不再有版本指针 —— 代价是回滚需要人进终端,
+  不像旧的指针回落那样无人值守;
 - **逃生通道独立于被进化的部分**:Kernel 无持久状态、崩了重启即回到干净态;
   `guard` 与出厂 `bin/` 工具是地板;App 被改坏时 `npm run cli -- --direct` 直连 Kernel,
   不经 App 就能发起一次 run 把它修回来。
@@ -49,29 +49,55 @@ agent 可以为自己编写新工具并注册进来。调用方式同样开放:a
 ### 架构
 
 ```text
-boot.js                启动 · 环境 · 版本隔离。只用 Node 内置模块,零依赖
+boot.js                启动 · 交出环境 · 看护。只用 Node 内置模块,零依赖
 stop.js
-etc/env.json           环境:模型凭据、端口、Boot 超时(不进 Git)
-etc/current.json       版本指针 { current, preview, backup }
-var/                   持久事实 aios.db,跨版本共享
+host.js                宿主路径的唯一入口:HOME / VAR / RUN / ENV
+etc/                   env.json(凭据端口,不进 Git) · limits.json · tools.json · instructions.md
+var/
+  ├── aios.db          框架库:8 张表,只装框架自己的事实
+  ├── apps/<id>.db     应用库:一个应用一个文件
+  └── files/           落盘的图片与附件
 run/                   宿主运行态 boot.pid,可丢弃
-versions/<id>/         一个版本 = 一整套 userland
-  ├── kernel/          :9522  无持久状态,单次 run 的模型工具循环
-  ├── app/             :9523  有状态,对话/SQLite/上下文策略/UI
-  ├── bin/             tools/ 给模型 · hooks/ 给内核
-  ├── cli/             终端界面(Ink),走 App;App 坏了退到直连 Kernel
-  ├── skills/
-  ├── etc/             instructions.md · tools.json · limits.json
-  └── host.js          版本对宿主环境的唯一入口
+bin/                   tools/ 给模型 · hooks/ 给内核与启动检查
+kernel/                :9522  无持久状态,单次 run 的模型工具循环
+app/                   :9523  有状态的壳
+  ├── index.js         进程入口:装配框架、扫描挂载应用、托管 dist
+  ├── main/            ── 框架 ──
+  │   ├── server/      db/ · repository/ · service/ · api/
+  │   └── ui/          壳 · 路由 · 对话界面 · 注册表 · 公共件
+  ├── apps/            ── 应用 ──
+  │   ├── _shared/     createAppDb(自己的库) · task(调模型的唯一入口)
+  │   └── <id>/        APP.md · server/{api,repository} · ui/{meta,index}
+  └── shared/          纯工具,无状态
+skills/                技能与扩展(browserctl 浏览器扩展也在这里)
+cli/                   终端界面(Ink),走 App;App 坏了退到直连 Kernel
 ```
 
-- **Kernel**:Responses API、内存工具循环、bash、扩展工具执行、run/stop HTTP API。
-  不拥有 chat,不启动 App,不读写对话历史。
-- **App**:拥有对话与持久事实(`var/aios.db`),选择跨轮上下文,把完整 input 交给
-  Kernel。App 崩溃不损坏磁盘事实,Kernel 崩溃不需要恢复聊天状态。
+- **Kernel**:Responses API、内存工具循环、bash、扩展工具执行、run/complete HTTP API。
+  不拥有对话,不启动 App,不读写历史。
+- **App**:拥有线程与持久事实,选择跨轮上下文,把完整 input 交给 Kernel。
 
-边界判断:宿主进程编排进 Boot;一次模型执行无法外包的机制进 Kernel;
-持久状态和产品策略进 App/userland。
+**框架与应用的分界**,判据是「这张表/这段代码没了,还是不是一个能跑的对话运行时」:
+
+| | 装什么 | 用哪个库 |
+| --- | --- | --- |
+| `app/main/` | threads · messages · usage · compactions · settings · chats · tasks · restarts | `var/aios.db` |
+| `app/apps/<id>/` | 这个应用自己的事实 | `var/apps/<id>.db` |
+
+主干是 **threads**:一切消息流的身份。`chats` 与 `tasks` 是它的两种侧写,
+各自只存「作为产品对象」的字段;「作为消息流运转」所必需的(`context_start`)留在主干,
+`messages` / `usage` / `compactions` 三张挂表也只认 `thread_id`。
+
+**任务**是这版的关键机制。压缩摘要、应用调模型、将来模型自调用,全部落成 task ——
+开线程、落消息、记账,走和对话完全相同的路。重点不是「多了一种任务」,
+而是**没有第二条通往模型的路**:老版压缩那笔消耗只写进 `compactions.tokens`,
+状态行和用量应用都看不见,于是花了钱账上没有。现在这种漏账在结构上不可能发生。
+
+应用与框架的边界不是约定而是**拿不到**:框架库的 client 只被 `main/server/repository/*` 导入,
+应用能拿到的唯一句柄来自 `apps/_shared/db.js`。`bin/hooks/check-boundaries` 在每次启动时复核。
+
+**成本是写下来的事实,不是每次重算的估算。** 消息落库时一并记下当时的模型、
+单价快照与折算成本,所以改单价不会让历史金额跳动,换模型也不会让旧 token 被按新价折算。
 
 **设置放在哪**,判据是「谁在什么时刻读它」:
 
@@ -79,50 +105,26 @@ versions/<id>/         一个版本 = 一整套 userland
 | --- | --- | --- |
 | `var/aios.db` 的 `settings` 表 | 模型、上下文、计价、压缩、执行参数 | 立即生效 |
 | `etc/env.json` | 凭据、端口、Boot 超时 —— Boot 在库存在之前就要读 | 需重启 |
-| `versions/<id>/etc/limits.json` | guard 与工具注册表的路径、Kernel 建 HTTP 服务器的参数 | 需重启 |
-
-执行参数能放进库,是因为它们**随 run 下发**:App 每次调 `POST /api/runs` 时把 model、
-bash 超时这些一起带过去,Kernel 不必自己读配置。下发通道只认白名单里的键,
-凭据、端口、guard 路径改不了。
-
-Boot 把路径与端口作为环境变量交给子进程,凭据只交出文件位置、不交出值,
-因此新建一个版本目录是纯代码复制,不含秘密。
-
-版本内的 `host.js` 是这套环境的唯一入口。被 Boot 拉起时读环境变量,
-脱离 Boot 单独运行时按自身位置回推同一套 `etc/`、`var/`、`run/`
-——两种模式看到的目录完全一致。
+| `etc/limits.json` | guard 与工具注册表的路径、Kernel 建 HTTP 服务器的参数 | 需重启 |
 
 ---
 
-### 版本
+### 演化
 
-`etc/current.json` 是全系统唯一决定「跑哪一版」的地方:
-
-```json
-{ "current": "v4", "preview": null, "backup": "v3" }
-```
-
-角色只有三个,而版本目录想留几份留几份——`versions/` 下的目录跑不跑,
-只取决于它在不在指针里。历代版本就留在那儿,不另设存档区。
-
-**换一版**:整份复制版本目录,改完把 `current` 指向新版、`backup` 指向旧版,
-然后让 Boot 重载。切换是写一次 JSON(临时文件加 rename),目录自始至终不动,
-所以不存在「换到一半」的中间态。
+代码直接摆在根目录,不再有 `versions/<id>/` 这层间接,也不再有 `etc/current.json` 指针。
+回滚由 Git 承担 —— 代价是它需要人进终端,不像旧的指针回落那样无人值守。
 
 ```bash
-kill -HUP $(cat run/boot.pid)   # 指针换了版本就整套切过去,没换就只重启 App
+kill -HUP $(cat run/boot.pid)   # 重启 App(代码改了即生效,Kernel 不动)
 ```
 
-agent 自己走的是同一条路:改完指针后通过 App API 提交重启申请,
+agent 自己走的是同一条路:改完代码通过 App API 提交重启申请,
 人在前端确认,App 再向 Boot 发 `SIGHUP`。
 
-**退回去**:新版连续三次起不来,Boot 自动把 `current` 改回 `backup` 并重启;
-启动时若 `current` 指向的目录不存在或没有 `kernel/index.js`,同样退到 `backup`。
-两种回落都会把指针改写成事实,不留下与磁盘不符的指向。
-
-`preview` 是给「先验后升」预留的:内核无持久状态,可以在临时端口上先拉起候选版本、
-按上面三条契约验一遍再置顶。Boot 目前不读这个字段,写了也不会生效。
-App 绑着 `var/`,不能并行,只能切过去、坏了回落。
+**加一个应用** = 建一个目录:`app/apps/<id>/`,里面放 `ui/meta.ts` 与 `ui/index.tsx`
+(需要服务端就再加 `server/api.js`,需要持久事实就用 `_shared/db.js` 开自己的库)。
+两侧都是构建期/启动期自动发现,不用改任何现有文件。删掉目录加删掉
+`var/apps/<id>.db` 就等于卸载。
 
 ---
 
@@ -132,9 +134,9 @@ App 绑着 `var/`,不能并行,只能切过去、坏了回落。
 
 ```bash
 cp etc/env.example.json etc/env.json
-# 填写 responsesUrl、apiKey、model
+# 填写 responsesUrl、apiKey、model(Kernel 的兜底;App 起来后在设置页改即时生效)
 
-cd versions/v4/app/ui && npm install && npm run build && cd -
+cd app && npm install && npm run build && cd -
 npm start
 ```
 
@@ -142,16 +144,19 @@ npm start
 
 | 命令 | 作用 |
 | --- | --- |
-| `npm start` | 启动 Boot,按 `etc/current.json` 拉起 Kernel `:9522` 和 App `:9523` |
+| `npm start` | 启动 Boot,拉起 Kernel `:9522` 和 App `:9523` |
 | `npm stop` | 通知 Boot 统一关闭 App 和 Kernel |
-| `kill -HUP $(cat run/boot.pid)` | 重载:换版本或只重启 App |
-| `cd versions/v4 && npm run kernel` | 只启动 Kernel,独立调试 |
-| `cd versions/v4 && npm run app` | 只启动 App |
-| `cd versions/v4 && npm run cli` | 终端界面 |
-| `cd versions/v4 && npm run cli -- run "任务"` | 跑一次就退,正文走 stdout |
-| `cd versions/v4 && npm run cli -- --direct` | 逃生通道:绕开 App 直连 Kernel |
+| `npm run build` | 构建前端到 `app/dist` |
+| `kill -HUP $(cat run/boot.pid)` | 重启 App |
+| `npm run kernel` | 只启动 Kernel,独立调试 |
+| `npm run app` | 只启动 App |
+| `npm run cli` | 终端界面 |
+| `npm run cli -- run "任务"` | 跑一次就退,正文走 stdout |
+| `npm run cli -- --direct` | 逃生通道:绕开 App 直连 Kernel |
+| `node bin/hooks/check-boundaries` | 复核应用没越过框架边界 |
 
-命令里的 `v4` 是此刻指针指向的版本,换版本后随之改变。
+`--direct` 不进库、不压缩,所以**它的消耗天然记不上账** —— 这是逃生通道的代价,
+不是缺陷,但值得知道。
 
 ---
 
