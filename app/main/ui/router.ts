@@ -1,6 +1,6 @@
 // 轻量 History router:干净的 path,不带 #。
 // 前端是静态构建产物,但 App 服务端对任何非文件、非 /api/ 的路径都回退到 index.html
-// (见 app/server/index.js 的静态处理),所以刷新 / 直达 /chat/<id> 都能由 index.html 承载。
+// (见 app/index.js 的静态处理),所以刷新 / 直达 /chat/<id> 都能由 index.html 承载。
 //
 //   /            → 默认:新对话页
 //   /new         → 新对话(draft)

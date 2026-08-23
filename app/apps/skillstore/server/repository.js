@@ -11,7 +11,7 @@ import { HOME } from '../../../../host.js';
 import { execFile } from 'node:child_process';
 
 const API = 'https://skill.xfyun.cn/api/v1';
-// skills/ 目录在版本根(与 kernel/ 同级),即本文件(在 app/server/ 下)向上两级
+// skills/ 目录在仓库根(与 kernel/ 同级),路径由 host.js 的 HOME 给出
 const SKILLS_ROOT = path.join(HOME, 'skills');
 const VALID_ID = /^[a-z0-9-]+$/;
 
