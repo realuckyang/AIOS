@@ -38,6 +38,7 @@ function DetailView({ slug, onBack }: { slug: string; onBack: () => void }) {
   };
 
   return (
+    <section id="skillstore-app">
     <div className="ss-detail">
       <button className="ss-back" onClick={onBack}><Icon name="back" size={14} /> 返回列表</button>
       {error && <p className="ss-error">{error}</p>}
@@ -75,6 +76,7 @@ function DetailView({ slug, onBack }: { slug: string; onBack: () => void }) {
         </>
       )}
     </div>
+    </section>
   );
 }
 
