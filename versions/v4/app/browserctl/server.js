@@ -53,6 +53,7 @@ function pushCommand(payload) {
 }
 
 const server = createServer(async (req, res) => {
+  console.log(`[bctl ${new Date().toISOString()}] ${req.method} ${req.url}`);
   sendCORS(res);
   if (req.method === "OPTIONS") { res.writeHead(204); res.end(); return; }
   const url = new URL(req.url, `http://${req.headers.host || "localhost"}`);

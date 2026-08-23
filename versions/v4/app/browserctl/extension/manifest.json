@@ -1,12 +1,19 @@
 {
   "manifest_version": 3,
   "name": "AIOS Browser Control",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "AIOS agent 的浏览器执行桥：接收本地通信服务的指令，在页面执行并回报结果。",
   "minimum_chrome_version": "102",
-  "permissions": ["scripting", "tabs"],
+  "permissions": ["scripting", "tabs", "alarms"],
   "host_permissions": ["<all_urls>", "http://127.0.0.1:9524/*"],
   "background": {
     "service_worker": "background.js"
-  }
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
 }

@@ -1,6 +1,8 @@
 // AIOS Browser Control — background service worker
-// 轮询本地通信服务，领取 agent 下发的指令，在页面执行并回报结果。
+// 单点轮询本地通信服务，领取 agent 下发的指令、在页面执行并回报结果。
+// 由 content script 的心跳触发轮询（保活），并用 chrome.alarms 兜底。
 const AGENT = "http://127.0.0.1:9524";
+let polling = false;
 
 async function agentFetch(path, opts = {}) {
   try {
@@ -11,8 +13,7 @@ async function agentFetch(path, opts = {}) {
     });
     return await r.json();
   } catch (e) {
-    // 服务未启动等
-    return null;
+    return null; // 服务未启动等
   }
 }
 
@@ -22,12 +23,10 @@ async function getActiveTab() {
 }
 
 async function runInPage(tabId, code) {
-  // 在目标页面的主世界执行一段脚本，返回结果。
   const [res] = await chrome.scripting.executeScript({
     target: { tabId },
     func: (src) => {
       try {
-        // 注：eval 在部分站点的 CSP 下会被禁用；此时返回错误。
         // eslint-disable-next-line no-eval
         const result = (0, eval)(src);
         return typeof result === "object" ? JSON.parse(JSON.stringify(result)) : result;
@@ -72,13 +71,33 @@ async function handleCmd(cmd) {
   await agentFetch("/report", { method: "POST", body: { requestId, ok, data } });
 }
 
-async function poll() {
-  const cmd = await agentFetch("/poll");
-  if (cmd && cmd.requestId) {
-    await handleCmd(cmd);
+async function pump() {
+  if (polling) return;
+  polling = true;
+  try {
+    const cmd = await agentFetch("/poll?wait=5");
+    if (cmd && cmd.requestId) await handleCmd(cmd);
+  } catch (e) {
+    // 忽略
+  } finally {
+    polling = false;
   }
-  setTimeout(poll, 1500);
 }
 
-// 启动轮询
-poll();
+// content script 心跳：保持 worker 活跃并触发轮询
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (msg && msg.type === "heartbeat") {
+    pump();
+    sendResponse({ ok: true });
+  }
+  return true;
+});
+
+// alarms 兜底：即使没有 content script（如页面未注入），也每 30s 轮询一次
+chrome.alarms.create("bctl", { periodInMinutes: 0.5 });
+chrome.alarms.onAlarm.addListener((a) => {
+  if (a.name === "bctl") pump();
+});
+
+// 启动时立刻尝试一次
+pump();
