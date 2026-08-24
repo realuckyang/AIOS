@@ -1,4 +1,4 @@
-// AIOS Browser Control — agent 侧本地通信服务
+// AIOS Browser Control integration — agent 侧本地通信服务
 // 纯 node 内置 http，无需任何依赖。扩展 background 连它轮询指令并回报结果。
 //
 // 端点:

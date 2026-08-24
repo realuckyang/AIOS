@@ -8,8 +8,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-// server 在根/skills/browserctl/server.js（相对于本工具 bin/tools）
-const SERVER_PATH = path.resolve(__dirname, "../../skills/browserctl/server.js");
+// server 在根/integrations/browserctl/server.js（相对于本工具 bin/tools）
+const SERVER_PATH = path.resolve(__dirname, "../../integrations/browserctl/server.js");
 const BASE = "http://127.0.0.1:9524";
 
 const reply = (value) => process.stdout.write(`${JSON.stringify(value)}\n`);

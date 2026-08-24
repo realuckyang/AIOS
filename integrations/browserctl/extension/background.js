@@ -1,4 +1,4 @@
-// AIOS Browser Control — background service worker
+// AIOS Browser Control integration — background service worker
 // 单点轮询本地通信服务，领取 agent 下发的指令、在页面执行并回报结果。
 // 由 content script 的心跳触发轮询（保活），并用 chrome.alarms 兜底。
 const AGENT = "http://127.0.0.1:9524";

@@ -69,7 +69,9 @@ app/                   :9523  有状态的壳
   │   ├── _shared/     createAppDb(自己的库) · task(调模型的唯一入口)
   │   └── <id>/        APP.md · server/{api,repository} · ui/{meta,index}
   └── shared/          纯工具,无状态
-skills/                技能与扩展(browserctl 浏览器扩展也在这里)
+skills/                Agent 可读取、复用的技能说明与资源
+integrations/          外部系统集成
+  └── browserctl/      浏览器连接器:本地 bridge 服务 · Chrome 扩展
 cli/                   终端界面(Ink),走 App;App 坏了退到直连 Kernel
 ```
 

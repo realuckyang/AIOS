@@ -5,7 +5,7 @@
 ## 组成
 
 ```
-app/browserctl/
+integrations/browserctl/
 ├── extension/     ← 你要安装的 Chrome 扩展（加载此目录）
 │   ├── manifest.json
 │   └── background.js
@@ -17,7 +17,7 @@ app/browserctl/
 
 1. 在 Chrome 地址栏打开 `chrome://extensions`
 2. 右上角打开「开发者模式」
-3. 点「加载已解压的扩展程序」，选择 `app/browserctl/extension/` 目录
+3. 点「加载已解压的扩展程序」，选择 `integrations/browserctl/extension/` 目录
 4. 确认扩展「AIOS Browser Control」出现，并授予权限（初次会提示 `<all_urls>` 站点权限）
 
 > ⚠️ 当前 host_permissions 是 `<all_urls>`（便于任何站点都能被控）。正式使用时建议收窄成你实际要操作的站点，例如 `["https://example.com/*"]`。
@@ -25,7 +25,7 @@ app/browserctl/
 ## 运行通信服务（agent 侧）
 
 ```bash
-node app/browserctl/server.js
+node integrations/browserctl/server.js
 # 监听 http://127.0.0.1:9524
 ```
 
