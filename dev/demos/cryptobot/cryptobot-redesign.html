@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>炒币机 · AI 协作终端(设计原型)</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0b0f; --bg2:#0c0e13;
+  --panel:#111319; --panel2:#14171f; --panel-hi:#191d27;
+  --line:#1f2330; --line-soft:#171a23;
+  --text:#e9ebf2; --muted:#8a90a2; --faint:#565c6e;
+  --gold:#f5b738; --gold-hi:#ffcf52;
+  --bull:#2bd4a4; --bull-soft:rgba(43,212,164,.13);
+  --bear:#ff5470; --bear-soft:rgba(255,84,112,.13);
+  --ai:#8b93ff; --ai-soft:rgba(139,147,255,.12); --ai-line:rgba(139,147,255,.22);
+  --mono:'JetBrains Mono',ui-monospace,Menlo,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  background:
+    radial-gradient(1100px 560px at 78% -8%, rgba(245,183,56,.06), transparent 60%),
+    radial-gradient(900px 600px at 8% 108%, rgba(139,147,255,.06), transparent 60%),
+    var(--bg);
+  color:var(--text); font-family:Inter,system-ui,'PingFang SC',sans-serif;
+  font-feature-settings:'tnum' 1; -webkit-font-smoothing:antialiased;
+}
+.mono{font-family:var(--mono)}
+.tnum{font-variant-numeric:tabular-nums}
+
+/* ── shell ── */
+.app{height:100vh;display:flex;flex-direction:column;overflow:hidden}
+
+/* topbar */
+.top{
+  height:60px;flex:none;display:flex;align-items:center;gap:16px;padding:0 20px;
+  border-bottom:1px solid var(--line);
+  background:linear-gradient(180deg,rgba(255,255,255,.02),transparent);
+  backdrop-filter:blur(8px);
+}
+.brand{display:flex;align-items:center;gap:11px}
+.logo{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font-weight:800;font-size:19px;color:#1a1500;
+  background:linear-gradient(135deg,#ffe7a3,var(--gold) 60%,#c8920a);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.6),0 4px 16px rgba(245,183,56,.4)}
+.brand b{font-size:16px;letter-spacing:.02em}
+.brand small{display:block;font-size:10.5px;color:var(--faint);letter-spacing:.16em;font-family:var(--mono)}
+
+.top-eq{margin-left:8px;display:flex;align-items:baseline;gap:10px}
+.top-eq .lbl{font-size:10px;color:var(--faint);letter-spacing:.14em;font-family:var(--mono);text-transform:uppercase}
+.top-eq .val{font-family:var(--mono);font-size:19px;font-weight:600}
+.pill{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:12px;font-weight:600;padding:4px 10px;border-radius:6px}
+.pill.up{color:var(--bull);background:var(--bull-soft);border:1px solid rgba(43,212,164,.3)}
+.pill.down{color:var(--bear);background:var(--bear-soft);border:1px solid rgba(255,84,112,.3)}
+
+.spacer{flex:1}
+.btn{display:inline-flex;align-items:center;gap:7px;height:36px;padding:0 15px;border-radius:9px;border:1px solid var(--line);
+  background:rgba(255,255,255,.04);color:var(--muted);font-size:13px;font-weight:600;cursor:pointer;transition:.15s;font-family:inherit}
+.btn:hover{background:rgba(255,255,255,.08);color:var(--text)}
+.btn .i{font-family:var(--mono);font-weight:700}
+.btn-run{background:linear-gradient(180deg,var(--bull),#1eae86);color:#04130d;border-color:var(--bull);
+  box-shadow:0 2px 12px rgba(43,212,164,.35),inset 0 1px 0 rgba(255,255,255,.4)}
+.btn-run:hover{filter:brightness(1.06);color:#04130d}
+.btn-ico{width:36px;padding:0;justify-content:center}
+
+/* body grid */
+.main{flex:1;min-height:0;display:grid;grid-template-columns:1fr 384px;gap:14px;padding:14px;overflow:hidden}
+.col{min-height:0;display:flex;flex-direction:column;gap:14px;overflow-y:auto;padding-right:2px}
+.col::-webkit-scrollbar{width:8px}.col::-webkit-scrollbar-thumb{background:#20242f;border-radius:8px}
+
+.panel{background:linear-gradient(180deg,var(--panel-hi),var(--panel));border:1px solid var(--line);border-radius:16px;
+  box-shadow:0 1px 0 rgba(255,255,255,.03) inset,0 10px 30px rgba(0,0,0,.3)}
+
+/* hero chart */
+.hero{padding:20px 22px 14px;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:0 auto 0 0;width:3px;background:linear-gradient(180deg,var(--gold),transparent)}
+.hero-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.eyebrow{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:var(--faint);text-transform:uppercase}
+.bignum{font-family:var(--mono);font-size:46px;font-weight:600;line-height:1.04;letter-spacing:-.01em;margin-top:5px;text-shadow:0 0 26px rgba(233,235,242,.12)}
+.sub{margin-top:10px;display:flex;align-items:center;gap:12px;font-family:var(--mono);font-size:12.5px;color:var(--muted)}
+.seg{display:flex;gap:2px;padding:3px;border-radius:9px;background:rgba(0,0,0,.34);border:1px solid var(--line)}
+.seg button{border:0;background:transparent;color:var(--faint);font-family:var(--mono);font-size:11.5px;font-weight:600;padding:5px 12px;border-radius:6px;cursor:pointer;transition:.15s}
+.seg button.on{background:rgba(245,183,56,.16);color:var(--gold)}
+.seg button:not(.on):hover{color:var(--muted)}
+
+.chart{margin-top:16px;position:relative}
+.chart svg{width:100%;height:230px;display:block;overflow:visible}
+.crosshair{position:absolute;pointer-events:none;background:rgba(8,10,15,.95);border:1px solid var(--line);border-radius:8px;
+  padding:6px 10px;font-family:var(--mono);font-size:11px;box-shadow:0 8px 24px rgba(0,0,0,.5);transform:translateX(-50%);top:-6px;white-space:nowrap;display:none}
+.crosshair b{font-size:13px}.crosshair span{color:var(--faint);display:block;margin-top:2px;font-size:10px}
+.mk-tip{position:absolute;transform:translate(-50%,-130%);background:var(--ai-soft);border:1px solid var(--ai-line);color:var(--ai);
+  font-family:var(--mono);font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px;white-space:nowrap;pointer-events:none}
+
+/* kpi */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.kpi{padding:14px 16px;display:flex;align-items:center;gap:12px}
+.kpi .ic{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;font-family:var(--mono);font-weight:700;
+  background:rgba(245,183,56,.1);color:var(--gold);border:1px solid rgba(245,183,56,.22);flex:none}
+.kpi .lbl{font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--faint);text-transform:uppercase}
+.kpi .num{font-family:var(--mono);font-size:18px;font-weight:600;margin-top:3px}
+
+/* section head */
+.sec-h{display:flex;align-items:center;justify-content:space-between;padding:16px 20px 0}
+.sec-t{font-size:13.5px;font-weight:600;letter-spacing:.02em}
+.sec-s{font-size:11.5px;color:var(--faint);margin-top:2px}
+
+/* positions table */
+.tbl{padding:6px 12px 14px;font-family:var(--mono);font-size:12px}
+.tr{display:grid;grid-template-columns:1.5fr 56px 1fr 1fr 1.4fr 60px;gap:10px;padding:10px 8px;align-items:center;border-bottom:1px solid var(--line-soft)}
+.tr:last-child{border-bottom:0}
+.tr.h{font-size:10px;color:var(--faint);letter-spacing:.08em;text-transform:uppercase}
+.tr .r{text-align:right}
+.side{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700}
+.side.l{background:var(--bull-soft);color:var(--bull)}.side.s{background:var(--bear-soft);color:var(--bear)}
+
+/* market strip */
+.mkt{display:flex;gap:10px;padding:6px 16px 16px;overflow-x:auto}
+.mkt::-webkit-scrollbar{height:6px}.mkt::-webkit-scrollbar-thumb{background:#20242f;border-radius:6px}
+.mc{flex:none;width:150px;padding:12px 13px;border-radius:12px;background:var(--panel2);border:1px solid var(--line);position:relative;overflow:hidden}
+.mc .sym{font-family:var(--mono);font-weight:700;font-size:14px}
+.mc .sym i{color:var(--faint);font-size:10px;font-style:normal}
+.mc .px{font-family:var(--mono);font-size:17px;font-weight:600;margin-top:7px}
+.mc .ch{font-family:var(--mono);font-size:11px;font-weight:700;margin-top:3px}
+.mc.up .ch{color:var(--bull)}.mc.down .ch{color:var(--bear)}
+.mc spark{display:block;margin-top:8px}
+
+/* ── AI 决策流 (right) ── */
+.ai-col{display:flex;flex-direction:column;min-height:0}
+.ai-panel{flex:1;min-height:0;display:flex;flex-direction:column;border-radius:16px;overflow:hidden;
+  border:1px solid var(--ai-line);
+  background:
+    radial-gradient(420px 220px at 100% 0%,rgba(139,147,255,.1),transparent 70%),
+    linear-gradient(180deg,#13151f,#0f111a)}
+.ai-h{flex:none;padding:16px 18px;border-bottom:1px solid var(--ai-line);display:flex;align-items:center;gap:10px}
+.ai-badge{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;font-size:16px;
+  background:var(--ai-soft);border:1px solid var(--ai-line)}
+.ai-h .t{font-size:13.5px;font-weight:600}
+.ai-h .s{font-size:10.5px;color:var(--ai);font-family:var(--mono);letter-spacing:.06em;margin-top:1px;display:flex;align-items:center;gap:5px}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--ai);box-shadow:0 0 8px var(--ai);animation:blink 1.4s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+.ai-feed{flex:1;min-height:0;overflow-y:auto;padding:14px 14px 18px}
+.ai-feed::-webkit-scrollbar{width:7px}.ai-feed::-webkit-scrollbar-thumb{background:#262a3a;border-radius:7px}
+
+/* thinking */
+.thinking{display:flex;align-items:center;gap:8px;padding:11px 13px;border-radius:11px;margin-bottom:12px;
+  background:var(--ai-soft);border:1px solid var(--ai-line);color:var(--ai);font-size:12px}
+.tdots{display:inline-flex;gap:3px}.tdots i{width:5px;height:5px;border-radius:50%;background:var(--ai);animation:td 1.2s infinite}
+.tdots i:nth-child(2){animation-delay:.2s}.tdots i:nth-child(3){animation-delay:.4s}
+@keyframes td{0%,60%,100%{opacity:.25;transform:translateY(0)}30%{opacity:1;transform:translateY(-3px)}}
+
+/* decision card */
+.dc{position:relative;padding:13px 14px;border-radius:13px;margin-bottom:11px;background:rgba(255,255,255,.022);
+  border:1px solid var(--line);animation:slidein .4s ease both}
+@keyframes slidein{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+.dc::before{content:'';position:absolute;left:0;top:12px;bottom:12px;width:3px;border-radius:3px}
+.dc.bull::before{background:var(--bull);box-shadow:0 0 8px rgba(43,212,164,.5)}
+.dc.bear::before{background:var(--bear);box-shadow:0 0 8px rgba(255,84,112,.5)}
+.dc.mute::before{background:var(--faint)}
+.dc-top{display:flex;align-items:center;gap:8px;padding-left:8px}
+.stance{display:inline-flex;align-items:center;gap:4px;font-family:var(--mono);font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:5px}
+.stance.bull{background:var(--bull-soft);color:var(--bull)}.stance.bear{background:var(--bear-soft);color:var(--bear)}.stance.mute{background:rgba(255,255,255,.05);color:var(--muted)}
+.dc-time{margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--faint)}
+.dc-head{padding-left:8px;margin-top:8px;font-size:13.5px;font-weight:600;line-height:1.4}
+.acts{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px;padding-left:8px}
+.act{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:11px;padding:3px 9px;border-radius:6px;border:1px solid transparent}
+.act.buy{background:var(--bull-soft);color:var(--bull);border-color:rgba(43,212,164,.25)}
+.act.sell{background:var(--bear-soft);color:var(--bear);border-color:rgba(255,84,112,.25)}
+.act.close{background:rgba(255,255,255,.05);color:var(--muted)}
+.act b{font-weight:700}.act .inst{color:var(--text);font-weight:600}.act .px{color:var(--faint)}
+.dc-body{padding-left:8px;margin-top:9px;font-size:12px;line-height:1.6;color:var(--muted)}
+.dc-foot{padding-left:8px;margin-top:9px;display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:10px;color:var(--faint)}
+.pnl{margin-left:auto;font-weight:700}.pnl.up{color:var(--bull)}.pnl.down{color:var(--bear)}
+
+.note{padding:7px 14px;text-align:center;font-size:11px;color:var(--faint);font-family:var(--mono)}
+
+/* ── 平板:单列堆叠,AI 流置顶 ── */
+@media(max-width:880px){
+  .main{grid-template-columns:1fr;overflow-y:auto;gap:12px;padding:12px}
+  .col{overflow:visible}
+  .ai-col{order:-1}
+  .ai-panel{height:auto}
+  .ai-feed{max-height:380px}
+  .kpis{grid-template-columns:repeat(4,1fr)}
+  .bignum{font-size:40px}
+}
+
+/* 中等宽度先把 topbar 里重复的净值收起,避免溢出 */
+@media(max-width:720px){ .top-eq{display:none} }
+
+/* ── 手机:压缩 topbar、隐藏次要列、AI 流可折叠观感 ── */
+@media(max-width:560px){
+  .top{height:54px;padding:0 13px;gap:10px}
+  .brand small{display:none}
+  .top-eq{display:none}                 /* 净值已在 hero 大字展示,topbar 不再重复 */
+  .btn{height:34px;padding:0 12px;font-size:12.5px}
+  .btn-run span:last-child{font-size:12.5px}
+  .main{padding:10px;gap:10px}
+  .hero{padding:16px 16px 12px}
+  .hero-top{flex-direction:column}
+  .hero-top>div:last-child{flex-direction:row;align-items:center;align-self:flex-start;gap:8px}
+  .bignum{font-size:34px}
+  .chart svg{height:180px}
+  .kpis{grid-template-columns:repeat(2,1fr);gap:10px}
+  .kpi{padding:12px 13px;gap:10px}
+  .kpi .ic{width:34px;height:34px}
+  /* 持仓表:只留 合约/方向/盈亏 三列 */
+  .tr{grid-template-columns:1.4fr 50px 1.3fr;gap:8px;padding:11px 6px}
+  .tr>:nth-child(3),.tr>:nth-child(4),.tr>:nth-child(6){display:none}
+  .tr>:nth-child(5){grid-column:auto}
+  .mc{width:135px}
+  .ai-feed{max-height:none}             /* 手机上让 AI 流自然展开,随页面滚动 */
+  .ai-h{padding:13px 14px}
+  .dc-head{font-size:13px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- TOPBAR -->
+  <header class="top">
+    <div class="brand">
+      <div class="logo">₿</div>
+      <div><b>炒币机</b><small>AI TRADING TERMINAL</small></div>
+    </div>
+    <div class="top-eq">
+      <span class="lbl">净值</span>
+      <span class="val tnum" id="topEq">$12,480.55</span>
+      <span class="pill up" id="topPill">▲ +12.41% · +$1,378</span>
+    </div>
+    <div class="spacer"></div>
+    <button class="btn btn-ico" title="分享战绩"><span class="i">⇪</span></button>
+    <button class="btn btn-ico" title="设置"><span class="i">⚙</span></button>
+    <button class="btn btn-run"><span class="i">▶</span> 运行中</button>
+  </header>
+
+  <!-- BODY -->
+  <div class="main">
+
+    <!-- LEFT -->
+    <div class="col">
+      <!-- hero -->
+      <section class="panel hero">
+        <div class="hero-top">
+          <div>
+            <div class="eyebrow">账户净值 · 累计</div>
+            <div class="bignum tnum">$12,480.55</div>
+            <div class="sub">
+              <span class="pill up">▲ +12.41%</span>
+              <span>本金 $11,102 · 今日 <b style="color:var(--bull)">+$214</b></span>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:10px;align-items:flex-end">
+            <div class="seg">
+              <button>价格</button><button class="on">净值</button>
+            </div>
+            <div class="seg">
+              <button>日</button><button>周</button><button class="on">月</button><button>全部</button>
+            </div>
+          </div>
+        </div>
+        <div class="chart" id="chart">
+          <svg viewBox="0 0 1000 230" preserveAspectRatio="none" id="svg">
+            <defs>
+              <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="var(--bull)" stop-opacity=".3"/>
+                <stop offset="100%" stop-color="var(--bull)" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+            <line id="base" x1="0" x2="1000" stroke="rgba(138,144,162,.35)" stroke-width="1" stroke-dasharray="4 6"/>
+            <path id="area" fill="url(#g)"/>
+            <path id="line" fill="none" stroke="var(--bull)" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round" style="filter:drop-shadow(0 4px 12px rgba(0,0,0,.4))"/>
+            <g id="marks"></g>
+            <circle id="last" r="4.5" fill="var(--bull)" style="filter:drop-shadow(0 0 7px var(--bull))"/>
+          </svg>
+          <div class="crosshair" id="cross"></div>
+        </div>
+      </section>
+
+      <!-- kpis -->
+      <div class="kpis">
+        <div class="panel kpi"><div class="ic">◳</div><div><div class="lbl">持仓</div><div class="num tnum">3</div></div></div>
+        <div class="panel kpi"><div class="ic">✦</div><div><div class="lbl">今日决策</div><div class="num tnum">18</div></div></div>
+        <div class="panel kpi"><div class="ic">↻</div><div><div class="lbl">胜率</div><div class="num tnum">64%</div></div></div>
+        <div class="panel kpi"><div class="ic">⏱</div><div><div class="lbl">采样</div><div class="num tnum">300s</div></div></div>
+      </div>
+
+      <!-- positions -->
+      <section class="panel">
+        <div class="sec-h"><div><div class="sec-t">当前持仓</div><div class="sec-s">来自 OKX 实时账户</div></div></div>
+        <div class="tbl">
+          <div class="tr h"><div>合约</div><div>方向</div><div class="r">仓位</div><div class="r">开仓</div><div class="r">未实现盈亏</div><div class="r">杠杆</div></div>
+          <div class="tr"><div>BTC-USDT</div><div><span class="side l">多</span></div><div class="r">0.18</div><div class="r" style="color:var(--faint)">63,820</div><div class="r" style="color:var(--bull)">+$312 <i style="font-size:10px;opacity:.7">+2.7%</i></div><div class="r" style="color:var(--faint)">3x</div></div>
+          <div class="tr"><div>SOL-USDT</div><div><span class="side l">多</span></div><div class="r">14.0</div><div class="r" style="color:var(--faint)">168.2</div><div class="r" style="color:var(--bull)">+$86 <i style="font-size:10px;opacity:.7">+1.1%</i></div><div class="r" style="color:var(--faint)">2x</div></div>
+          <div class="tr"><div>ETH-USDT</div><div><span class="side s">空</span></div><div class="r">1.2</div><div class="r" style="color:var(--faint)">3,180</div><div class="r" style="color:var(--bear)">−$41 <i style="font-size:10px;opacity:.7">−0.5%</i></div><div class="r" style="color:var(--faint)">2x</div></div>
+        </div>
+      </section>
+
+      <!-- market wall -->
+      <section class="panel">
+        <div class="sec-h"><div><div class="sec-t">实时行情</div><div class="sec-s">每 4 秒刷新</div></div>
+          <span class="stance bull" style="font-size:10px">● LIVE</span></div>
+        <div class="mkt" id="mkt"></div>
+      </section>
+    </div>
+
+    <!-- RIGHT — AI feed -->
+    <div class="col ai-col">
+      <section class="ai-panel">
+        <div class="ai-h">
+          <div class="ai-badge">🤖</div>
+          <div>
+            <div class="t">AI 决策流</div>
+            <div class="s"><span class="dot"></span> 自主交易中 · 每周期实时</div>
+          </div>
+        </div>
+        <div class="ai-feed" id="feed">
+          <div class="thinking" id="think">
+            <span>AI 正在分析市场</span><span class="tdots"><i></i><i></i><i></i></span>
+          </div>
+        </div>
+        <div class="note">每条决策都是 AI 真实调用 OKX 后的判断与动作</div>
+      </section>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ── 净值曲线(示例数据,原型用) ──
+const N=80, data=[]; let v=11102;
+for(let i=0;i<N;i++){ v += (Math.sin(i/6)*40) + (Math.random()*120-46) + i*2.1; data.push(Math.max(10600,v)); }
+data[N-1]=12480.55;
+const trades=[12,28,41,55,69]; // AI 交易点
+const W=1000,H=230,PY=18, lo=Math.min(...data,11102), hi=Math.max(...data), pad=(hi-lo)*.1;
+const min=lo-pad, max=hi+pad;
+const X=i=>i/(N-1)*W, Y=val=>H-PY-((val-min)/(max-min))*(H-PY*2);
+const line=data.map((d,i)=>`${i?'L':'M'}${X(i).toFixed(1)},${Y(d).toFixed(1)}`).join(' ');
+document.getElementById('line').setAttribute('d',line);
+document.getElementById('area').setAttribute('d',line+` L${W},${H} L0,${H} Z`);
+document.getElementById('base').setAttribute('y1',Y(11102));document.getElementById('base').setAttribute('y2',Y(11102));
+document.getElementById('last').setAttribute('cx',X(N-1));document.getElementById('last').setAttribute('cy',Y(data[N-1]));
+const mg=document.getElementById('marks');
+trades.forEach(i=>{const c=document.createElementNS('http://www.w3.org/2000/svg','circle');
+  c.setAttribute('cx',X(i));c.setAttribute('cy',Y(data[i]));c.setAttribute('r',3.4);
+  c.setAttribute('fill','var(--ai)');c.setAttribute('stroke','#0f111a');c.setAttribute('stroke-width',2);mg.appendChild(c);});
+// hover
+const svg=document.getElementById('svg'),cross=document.getElementById('cross'),chart=document.getElementById('chart');
+chart.addEventListener('mousemove',e=>{const r=svg.getBoundingClientRect();const i=Math.round((e.clientX-r.left)/r.width*(N-1));
+  if(i<0||i>=N)return;cross.style.display='block';cross.style.left=(X(i)/W*100)+'%';
+  cross.innerHTML=`<b>$${data[i].toLocaleString(undefined,{maximumFractionDigits:0})}</b><span>${trades.includes(i)?'⬩ AI 在此交易':'第 '+(i+1)+' 个采样'}</span>`;});
+chart.addEventListener('mouseleave',()=>cross.style.display='none');
+
+// ── 行情墙 ──
+const coins=[['BTC',64210,2.7,1],['ETH',3142,-0.6,0],['SOL',171.4,4.1,1],['BNB',598,1.2,1],['XRP',.612,-1.4,0],['DOGE',.158,3.3,1]];
+document.getElementById('mkt').innerHTML=coins.map(([s,p,c,u])=>{
+  const pts=Array.from({length:16},(_,i)=>`${i/15*120},${20-(Math.sin(i/2+(u?0:3))*7+ (u?10:8) + (Math.random()*4))}`).join(' ');
+  return `<div class="mc ${u?'up':'down'}"><div class="sym">${s}<i>/USDT</i></div>
+    <div class="px tnum">$${p.toLocaleString()}</div>
+    <div class="ch">${c>0?'▲ +':'▼ '}${c}%</div>
+    <svg width="120" height="22" viewBox="0 0 120 22"><polyline points="${pts}" fill="none" stroke="var(--${u?'bull':'bear'})" stroke-width="1.6"/></svg></div>`;
+}).join('');
+
+// ── AI 决策流(示例,带"流式"注入) ──
+const samples=[
+  {st:'bull',head:'BTC 突破日线压力,加仓追势',acts:[['buy','BTC-USDT','0.05','64,210']],body:'1H 级别量价齐升,刚突破 64k 前高且 RSI 未超买,按目标在 64,210 追加多单,止损设 62,800。',pnl:'+$58',pu:1},
+  {st:'mute',head:'ETH 震荡,维持空单观望',acts:[],body:'ETH 在 3,120–3,180 区间反复,无明确方向,现有空单浮亏可控,本轮不动,继续观察 4H 收线。',pnl:'−$41',pu:0},
+  {st:'bull',head:'SOL 资金流入,小仓试多',acts:[['buy','SOL-USDT','6','170.8']],body:'链上稳定币净流入 + 永续资金费率转正,小仓 6 张试多,验证趋势,占用保证金不超过 8%。',pnl:'+$23',pu:1},
+  {st:'bear',head:'DOGE 拉升过急,获利了结',acts:[['close','DOGE-USDT','','0.158']],body:'短时拉升 8% 偏离均线过远,情绪过热,平掉昨日多单锁定利润,不恋战。',pnl:'+$96',pu:1},
+  {st:'mute',head:'全市场缩量,本轮空仓等待',acts:[],body:'BTC 主导率走平、成交量萎缩,缺乏入场理由,保留现金,等待波动率回升再决策。',pnl:'',pu:0},
+];
+const stanceTxt={bull:['看多','▲'],bear:['看空','▼'],mute:['观望','●']};
+const actTxt={buy:'买入',sell:'卖出',close:'平仓'};
+const feed=document.getElementById('feed'),think=document.getElementById('think');
+let t=0;
+function card(d){
+  const acts=d.acts.map(([ty,inst,sz,px])=>`<span class="act ${ty}"><b>${actTxt[ty]}</b><span class="inst">${inst}</span>${sz?'<span>'+sz+'</span>':''}<span class="px">@ ${px}</span></span>`).join('');
+  const [lab,ic]=stanceTxt[d.st];
+  const mm=String(Math.floor(t/60)%24).padStart(2,'0'),ss=String(t%60).padStart(2,'0');
+  return `<div class="dc ${d.st}">
+    <div class="dc-top"><span class="stance ${d.st}">${ic} ${lab}</span><span class="dc-time">周期 #${120-t} · 今天 ${10+(t%9)}:${ss}</span></div>
+    <div class="dc-head">${d.head}</div>
+    ${acts?`<div class="acts">${acts}</div>`:`<div class="acts"><span class="act close">本轮未交易 · 持仓观望</span></div>`}
+    <div class="dc-body">${d.body}</div>
+    <div class="dc-foot"><span>#${1480-t*7}</span><span>· task #${9000+t}</span>${d.pnl?`<span class="pnl ${d.pu?'up':'down'}">本笔 ${d.pnl}</span>`:''}</div>
+  </div>`;
+}
+function push(d){ think.insertAdjacentHTML('afterend',card(d)); t++; }
+// 初始填几条
+[...samples].forEach(push);
+// 模拟"流式"新决策
+setInterval(()=>{ const d=samples[Math.floor(Math.random()*samples.length)]; push(d);
+  const cards=feed.querySelectorAll('.dc'); if(cards.length>14) cards[cards.length-1].remove(); }, 4200);
+
+// 顶部净值滚动微动
+let eq=12480.55;
+setInterval(()=>{ eq += (Math.random()*40-18);
+  document.getElementById('topEq').textContent='$'+eq.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+  const pr=((eq-11102)/11102*100);
+  document.getElementById('topPill').textContent=(pr>=0?'▲ +':'▼ ')+pr.toFixed(2)+'% · '+(pr>=0?'+':'−')+'$'+Math.abs(eq-11102).toLocaleString(undefined,{maximumFractionDigits:0});
+},2000);
+</script>
+</body>
+</html>

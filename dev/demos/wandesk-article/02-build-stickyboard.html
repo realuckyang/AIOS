@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Wandesk · 对话创作「便签板」</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Caveat:wght@500;600;700&display=swap" rel="stylesheet" />
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 100%; height: 100%; }
+  body { font-family: 'Barlow', system-ui, -apple-system, 'PingFang SC', sans-serif; overflow: hidden;
+    background: #1c1c1e; display: flex; align-items: center; justify-content: center; }
+  .screen { position: relative; width: 1600px; height: 900px; overflow: hidden; flex: none;
+    transform-origin: center center;
+    background: linear-gradient(to top, #fff1eb 0%, #ace0f9 100%); }
+
+  /* 桌面图标(真实网格 80×90,列优先,gap 6/16,inset-6) */
+  .desktop-icons { position: absolute; top: 24px; left: 24px; bottom: 24px; z-index: 1;
+    display: grid; grid-template-columns: repeat(auto-fill, 80px); grid-template-rows: repeat(auto-fill, 90px);
+    grid-auto-flow: column; gap: 6px 16px; align-content: start; }
+  .dicon { width: 80px; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px 4px; border-radius: 10px; }
+  .dicon .g { font-size: 26px; line-height: 1; transform: translateY(-2px); }
+  .dicon .l { font-size: 11px; font-weight: 600; color: #222; text-align: center; line-height: 1.15; max-width: 72px; text-shadow: 0 1px 4px rgba(255,255,255,0.9); }
+
+  /* 窗口通用(真实规格) */
+  .win { position: absolute; z-index: 5; overflow: hidden; background: #f7f4ef;
+    border: 1px solid rgba(255,255,255,0.5); border-radius: 14px; box-shadow: 0 22px 70px rgba(0,0,0,0.28); }
+  .tbar { height: 40px; display: flex; align-items: center; gap: 8px; padding: 0 12px;
+    border-bottom: 1px solid rgba(0,0,0,0.06); background: rgba(247,244,239,0.92); }
+  .tbar .ic { font-size: 15px; }
+  .tbar .tt { flex: 1; min-width: 0; font-size: 12.5px; font-weight: 600; color: #2a1f13; white-space: nowrap; }
+  .ctl { width: 14px; height: 14px; border-radius: 50%; }
+  .ctl.min { background: #f6c15f; } .ctl.max { background: #67c86f; } .ctl.cls { background: #ef6a5d; }
+
+  /* 聊天窗 */
+  .win-chat { top: 120px; left: 244px; width: 452px; height: 600px; }
+  .chat { height: calc(100% - 40px); display: flex; flex-direction: column; }
+  .msgs { flex: 1; overflow: hidden; padding: 20px 20px 8px; display: flex; flex-direction: column; gap: 13px; }
+  .b { max-width: 86%; padding: 11px 14px; border-radius: 14px; font-size: 13.5px; line-height: 1.6; }
+  .b.u { align-self: flex-end; background: #2a1f13; color: #fbf3e6; border-bottom-right-radius: 5px; }
+  .b.a { align-self: flex-start; background: #fff; border: 1px solid rgba(0,0,0,0.07); color: #2f2718;
+    border-bottom-left-radius: 5px; box-shadow: 0 2px 8px rgba(80,60,30,0.05); }
+  .tool { align-self: flex-start; max-width: 92%; font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+    font-size: 11.5px; color: #6a7b52; background: rgba(140,160,90,0.10); border: 1px solid rgba(140,160,90,0.22);
+    border-radius: 10px; padding: 8px 11px; display: flex; gap: 8px; align-items: center; }
+  .tool .d { width: 7px; height: 7px; border-radius: 50%; background: #7e8d5a; flex: none; }
+  .composer { padding: 12px 16px 16px; }
+  .cbox { height: 46px; border-radius: 23px; background: #fff; border: 1px solid rgba(0,0,0,0.08);
+    display: flex; align-items: center; padding: 0 6px 0 18px; gap: 8px; box-shadow: 0 4px 14px rgba(80,60,30,0.06); }
+  .cbox .ph { flex: 1; font-size: 13.5px; color: #b3a890; }
+  .cbox .snd { width: 34px; height: 34px; border-radius: 50%; background: #2a1f13; color: #fff;
+    display: flex; align-items: center; justify-content: center; font-size: 16px; }
+
+  /* 便签板窗(参考记忆 app) */
+  .win-board { top: 78px; left: 720px; width: 636px; height: 644px; z-index: 6; }
+  .board { position: relative; height: calc(100% - 40px); overflow: hidden;
+    background: repeating-linear-gradient(#faf6ef 0px,#faf6ef 31px,rgba(170,150,120,0.08) 31px,rgba(170,150,120,0.08) 32px),
+                linear-gradient(135deg,#faf5eb,#f5efe3); }
+  .board .margin { position: absolute; top: 0; bottom: 0; left: 42px; width: 1.5px; background: rgba(220,80,80,0.12); }
+  .board .margin2 { position: absolute; top: 0; bottom: 0; left: 46px; width: 1px; background: rgba(220,80,80,0.08); }
+  .board-head { position: relative; z-index: 2; display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 22px 6px 60px; }
+  .board-title { font-family: 'Caveat', cursive; font-size: 30px; font-weight: 700; color: rgba(80,55,30,0.8); }
+  .board-new { font-family: 'Caveat', cursive; font-size: 19px; font-weight: 600; color: rgba(100,75,40,0.6);
+    border: 2px dashed rgba(140,120,80,0.35); background: rgba(255,255,255,0.55); border-radius: 20px; padding: 5px 16px; }
+  .notes { position: relative; z-index: 2; display: flex; flex-wrap: wrap; gap: 18px 20px; padding: 14px 26px 26px 60px; align-content: flex-start; }
+  .note { position: relative; width: 188px; min-height: 150px; padding: 16px 16px 14px;
+    font-family: 'Caveat', cursive; color: #4a3a22; }
+  .note .nt { font-size: 21px; font-weight: 700; margin-bottom: 6px; line-height: 1.15; }
+  .note .nb { font-size: 16.5px; line-height: 1.45; color: #5a4a30; }
+  .note .nm { position: absolute; bottom: 8px; right: 12px; font-size: 12px; color: rgba(90,70,40,0.45); }
+  /* 图钉 / 胶带 */
+  .pin { position: absolute; top: -7px; left: 50%; transform: translateX(-50%); width: 16px; height: 16px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #ff8a8a, #d83a3a); box-shadow: 0 3px 5px rgba(0,0,0,0.25); }
+  .pin::after { content:""; position:absolute; top:13px; left:50%; transform:translateX(-50%); width:2px; height:7px; background:rgba(0,0,0,0.25); }
+  .tape { position: absolute; top: -9px; left: 50%; transform: translateX(-50%) rotate(-3deg); width: 64px; height: 22px;
+    background: rgba(230,210,120,0.55); border-left: 1px dashed rgba(0,0,0,0.06); border-right: 1px dashed rgba(0,0,0,0.06);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.08); }
+
+  /* 任务栏 */
+  .taskbar { position: absolute; left: 0; right: 0; bottom: 0; z-index: 250; height: 44px; display: flex; align-items: center;
+    gap: 8px; padding: 0 8px; border-top: 1px solid rgba(255,255,255,0.6); background: rgba(255,255,255,0.56);
+    backdrop-filter: blur(24px); }
+  .launch { width: 32px; height: 32px; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.05); color: #222; }
+  .launch svg { width: 17px; height: 17px; }
+  .tb-sep { width: 1px; height: 22px; background: rgba(0,0,0,0.07); margin: 0 6px; }
+  .tb-win { height: 32px; min-width: 88px; display: flex; align-items: center; gap: 6px; padding: 0 9px; border-radius: 7px; border: 1px solid transparent; font-size: 12px; font-weight: 500; color: #222; }
+  .tb-win.active { background: rgba(0,0,0,0.06); border-color: rgba(0,0,0,0.12); }
+  .tb-win .i { font-size: 15px; }
+  .clock { margin-left: auto; width: 84px; text-align: right; padding-right: 6px; }
+  .clock .t { font-size: 13px; font-weight: 600; color: #222; line-height: 1.25; }
+  .clock .d { font-size: 10px; color: rgba(0,0,0,0.38); line-height: 1.25; }
+</style>
+</head>
+<body>
+  <div class="screen">
+    <!-- 桌面图标(真实 8 个 + 便签板 + B 组 4 个) -->
+    <div class="desktop-icons">
+      <div class="dicon"><div class="g">💬</div><div class="l">聊天</div></div>
+      <div class="dicon"><div class="g">⚡</div><div class="l">任务</div></div>
+      <div class="dicon"><div class="g">💭</div><div class="l">记忆</div></div>
+      <div class="dicon"><div class="g">🗂</div><div class="l">文件</div></div>
+      <div class="dicon"><div class="g">📓</div><div class="l">笔记本</div></div>
+      <div class="dicon"><div class="g">💰</div><div class="l">记账</div></div>
+      <div class="dicon"><div class="g">💡</div><div class="l">开源雷达</div></div>
+      <div class="dicon"><div class="g">🪄</div><div class="l">应用工坊</div></div>
+      <div class="dicon"><div class="g">📌</div><div class="l">便签板</div></div>
+      <div class="dicon"><div class="g">📡</div><div class="l">新品速递</div></div>
+      <div class="dicon"><div class="g">🎴</div><div class="l">Demo 工坊</div></div>
+      <div class="dicon"><div class="g">🎬</div><div class="l">视频工坊</div></div>
+      <div class="dicon"><div class="g">✍️</div><div class="l">写作台</div></div>
+    </div>
+
+    <!-- 聊天:对话造便签板 -->
+    <div class="win win-chat">
+      <div class="tbar"><span class="ic">💬</span><span class="tt">聊天</span><span class="ctl min"></span><span class="ctl max"></span><span class="ctl cls"></span></div>
+      <div class="chat">
+        <div class="msgs">
+          <div class="b u">帮我做一个漂亮的便签板,能贴彩色便利贴、随手记灵感,像贴在墙上那种</div>
+          <div class="b a">好,做一个「便签板」给你 —— 软木墙质感,彩色便利贴带图钉和胶带,手写字体,随手就能贴一张。</div>
+          <div class="tool"><span class="d"></span>建表 notes · 写入 server/apps/stickyboard</div>
+          <div class="tool"><span class="d"></span>生成界面 ui/src/apps/stickyboard · 注册到桌面</div>
+          <div class="b a">贴好啦 👉 旁边就是,先放了几张示例便签。要不要支持拖动摆放?</div>
+        </div>
+        <div class="composer"><div class="cbox"><div class="ph">继续让它改…</div><div class="snd">↑</div></div></div>
+      </div>
+    </div>
+
+    <!-- 生成的便签板 -->
+    <div class="win win-board">
+      <div class="tbar"><span class="ic">📌</span><span class="tt">便签板</span><span class="ctl min"></span><span class="ctl max"></span><span class="ctl cls"></span></div>
+      <div class="board">
+        <div class="margin"></div><div class="margin2"></div>
+        <div class="board-head">
+          <div class="board-title">我的便签板</div>
+          <div class="board-new">+ 新便签</div>
+        </div>
+        <div class="notes">
+          <div class="note" style="background:#fff9c4; box-shadow:2px 3px 10px rgba(200,180,60,0.18),0 1px 2px rgba(0,0,0,0.04); transform:rotate(-1.8deg);">
+            <span class="pin"></span><div class="nt">灵感 💡</div><div class="nb">做一个"睡前播客"应用,把收藏的文章拼成图声视频,躺着听。</div><div class="nm">05-28</div>
+          </div>
+          <div class="note" style="background:#fce4ec; box-shadow:2px 3px 10px rgba(200,100,120,0.15),0 1px 2px rgba(0,0,0,0.04); transform:rotate(1.2deg);">
+            <span class="tape"></span><div class="nt">今天要做</div><div class="nb">· 回 PH 评论<br>· 修下载识别<br>· 看一眼 DAU</div><div class="nm">05-30</div>
+          </div>
+          <div class="note" style="background:#e3f2fd; box-shadow:2px 3px 10px rgba(80,140,220,0.14),0 1px 2px rgba(0,0,0,0.04); transform:rotate(-0.6deg);">
+            <span class="pin"></span><div class="nt">一句话</div><div class="nb">"对话适合表达意图,界面才让东西留下来。"</div><div class="nm">05-27</div>
+          </div>
+          <div class="note" style="background:#e8f5e9; box-shadow:2px 3px 10px rgba(80,160,100,0.14),0 1px 2px rgba(0,0,0,0.04); transform:rotate(1.5deg);">
+            <span class="tape"></span><div class="nt">买菜清单</div><div class="nb">番茄 · 鸡蛋 · 牛奶<br>跟室友 AA</div><div class="nm">05-26</div>
+          </div>
+          <div class="note" style="background:#f3e5f5; box-shadow:2px 3px 10px rgba(160,100,200,0.14),0 1px 2px rgba(0,0,0,0.04); transform:rotate(-1deg);">
+            <span class="pin"></span><div class="nt">读书</div><div class="nb">《卡片笔记写作法》<br>看到第 4 章</div><div class="nm">05-24</div>
+          </div>
+          <div class="note" style="background:#fff3e0; box-shadow:2px 3px 10px rgba(220,160,60,0.16),0 1px 2px rgba(0,0,0,0.04); transform:rotate(0.8deg);">
+            <span class="tape"></span><div class="nt">值得想的</div><div class="nb">什么样的一天,结束时不会觉得空?</div><div class="nm">05-22</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 任务栏 -->
+    <div class="taskbar">
+      <div class="launch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></div>
+      <div class="tb-sep"></div>
+      <div class="tb-win active"><span class="i">💬</span>聊天</div>
+      <div class="tb-win active"><span class="i">📌</span>便签板</div>
+      <div class="clock"><div class="t">14:22</div><div class="d">5/30</div></div>
+    </div>
+  </div>
+  <script>
+    function fit(){ var s=document.querySelector('.screen'); s.style.transform='scale('+Math.min(innerWidth/1600, innerHeight/900)+')'; }
+    addEventListener('resize', fit); fit();
+  </script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+{
+  "workshop_title": "工坊",
+  "workshop_load_failed": "加载工坊失败",
+  "workshop_search_placeholder": "搜索灵感、分类或提示词",
+  "workshop_empty": "没有匹配的灵感",
+  "workshop_select_hint": "选择一个灵感生成 demo",
+  "workshop_generate": "生成 demo",
+  "workshop_send_to_chat": "交给对话生成",
+  "workshop_prompt_label": "生成提示"
+}

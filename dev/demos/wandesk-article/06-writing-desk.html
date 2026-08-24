@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Wandesk · 自媒体写作台</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Noto+Serif+SC:wght@500;700&display=swap" rel="stylesheet" />
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 100%; height: 100%; }
+  body { font-family: 'Barlow', system-ui, -apple-system, 'PingFang SC', sans-serif; overflow: hidden;
+    background: #1c1c1e; display: flex; align-items: center; justify-content: center; }
+  .screen { position: relative; width: 1600px; height: 900px; overflow: hidden; flex: none; transform-origin: center;
+    background: linear-gradient(to top, #fff1eb 0%, #ace0f9 100%); }
+  .desktop-icons { position: absolute; top: 24px; left: 24px; bottom: 24px; z-index: 1; display: grid;
+    grid-template-columns: repeat(auto-fill, 80px); grid-template-rows: repeat(auto-fill, 90px); grid-auto-flow: column; gap: 6px 16px; align-content: start; }
+  .dicon { width: 80px; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px 4px; }
+  .dicon .g { font-size: 26px; line-height: 1; transform: translateY(-2px); }
+  .dicon .l { font-size: 11px; font-weight: 600; color: #222; text-align: center; line-height: 1.15; max-width: 72px; text-shadow: 0 1px 4px rgba(255,255,255,0.9); }
+  .win { position: absolute; overflow: hidden; background: #f7f4ef; border: 1px solid rgba(255,255,255,0.5); border-radius: 14px; box-shadow: 0 22px 70px rgba(0,0,0,0.28); }
+  .tbar { height: 40px; display: flex; align-items: center; gap: 8px; padding: 0 12px; border-bottom: 1px solid rgba(0,0,0,0.06); background: rgba(247,244,239,0.92); }
+  .tbar .ic { font-size: 15px; } .tbar .tt { flex: 1; font-size: 12.5px; font-weight: 600; color: #2a1f13; }
+  .ctl { width: 14px; height: 14px; border-radius: 50%; } .ctl.min{background:#f6c15f;}.ctl.max{background:#67c86f;}.ctl.cls{background:#ef6a5d;}
+  .taskbar { position: absolute; left: 0; right: 0; bottom: 0; z-index: 250; height: 44px; display: flex; align-items: center; gap: 8px; padding: 0 8px; border-top: 1px solid rgba(255,255,255,0.6); background: rgba(255,255,255,0.56); backdrop-filter: blur(24px); }
+  .launch { width: 32px; height: 32px; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.05); color: #222; } .launch svg { width: 17px; height: 17px; }
+  .tb-sep { width: 1px; height: 22px; background: rgba(0,0,0,0.07); margin: 0 6px; }
+  .tb-win { height: 32px; min-width: 88px; display: flex; align-items: center; gap: 6px; padding: 0 9px; border-radius: 7px; border: 1px solid transparent; font-size: 12px; font-weight: 500; color: #222; }
+  .tb-win.active { background: rgba(0,0,0,0.06); border-color: rgba(0,0,0,0.12); } .tb-win .i { font-size: 15px; }
+  .clock { margin-left: auto; width: 84px; text-align: right; padding-right: 6px; } .clock .t { font-size: 13px; font-weight: 600; color: #222; } .clock .d { font-size: 10px; color: rgba(0,0,0,0.38); }
+
+  /* ── 写作台(木桌 + 稿纸)── */
+  .win-write { top: 70px; left: 268px; width: 1064px; height: 760px; }
+  .wd { height: calc(100% - 40px); display: flex;
+    background: #6b4f34; /* 木桌 */
+    background-image: repeating-linear-gradient(90deg, rgba(0,0,0,0.06) 0 2px, transparent 2px 26px); }
+  /* 左:主题 + 平台列表 */
+  .wd-rail { width: 250px; flex: none; padding: 18px 16px; background: rgba(40,28,16,0.35); }
+  .wd-rail .topic-k { font-size: 11px; font-weight: 700; letter-spacing: .08em; color: #e8d3b3; opacity: .75; }
+  .wd-rail .topic { font-size: 17px; font-weight: 700; color: #fff4e2; margin: 6px 0 18px; line-height: 1.35; }
+  .wd-rail .pk { font-size: 11px; font-weight: 700; letter-spacing: .08em; color: #e8d3b3; opacity: .6; margin-bottom: 8px; }
+  .plat { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; font-size: 13.5px; color: #f3e6d2; margin-bottom: 7px; background: rgba(255,255,255,0.06); }
+  .plat.on { background: #fffaf0; color: #4a3320; font-weight: 700; box-shadow: 0 3px 10px rgba(0,0,0,0.25); }
+  .plat .st { margin-left: auto; font-size: 10px; opacity: .6; }
+  .plat.on .st { color: #2f7d4f; opacity: 1; }
+  /* 右:稿纸 */
+  .wd-paper-wrap { flex: 1; padding: 22px 26px; display: flex; }
+  .paper { flex: 1; border-radius: 6px; padding: 30px 40px; overflow: hidden;
+    background: #fffdf6;
+    background-image: linear-gradient(90deg, transparent 38px, rgba(220,80,80,0.18) 38px, rgba(220,80,80,0.18) 39px, transparent 39px),
+                      repeating-linear-gradient(#fffdf6 0 33px, rgba(120,100,70,0.10) 33px 34px);
+    box-shadow: 0 16px 40px rgba(0,0,0,0.35); }
+  .paper .ttl { font-family: 'Noto Serif SC', serif; font-size: 23px; font-weight: 700; color: #2a2014; margin: 4px 0 6px 14px; }
+  .paper .by { font-size: 12px; color: #a08868; margin: 0 0 18px 14px; }
+  .paper p { font-size: 14.5px; line-height: 34px; color: #3a3020; margin: 0 0 0 14px; }
+  .paper p .em { color: #b5602a; font-weight: 600; }
+  .paper .tagline { margin: 22px 0 0 14px; font-size: 13px; color: #8a7048; }
+  .paper .hash { color: #c08a3a; }
+</style>
+</head>
+<body>
+  <div class="screen">
+    <div class="desktop-icons">
+      <div class="dicon"><div class="g">💬</div><div class="l">聊天</div></div>
+      <div class="dicon"><div class="g">⚡</div><div class="l">任务</div></div>
+      <div class="dicon"><div class="g">💭</div><div class="l">记忆</div></div>
+      <div class="dicon"><div class="g">🗂</div><div class="l">文件</div></div>
+      <div class="dicon"><div class="g">📓</div><div class="l">笔记本</div></div>
+      <div class="dicon"><div class="g">💰</div><div class="l">记账</div></div>
+      <div class="dicon"><div class="g">💡</div><div class="l">开源雷达</div></div>
+      <div class="dicon"><div class="g">🪄</div><div class="l">应用工坊</div></div>
+      <div class="dicon"><div class="g">📌</div><div class="l">便签板</div></div>
+      <div class="dicon"><div class="g">📡</div><div class="l">新品速递</div></div>
+      <div class="dicon"><div class="g">🎴</div><div class="l">Demo 工坊</div></div>
+      <div class="dicon"><div class="g">🎬</div><div class="l">视频工坊</div></div>
+      <div class="dicon"><div class="g">✍️</div><div class="l">写作台</div></div>
+    </div>
+
+    <div class="win win-write">
+      <div class="tbar"><span class="ic">✍️</span><span class="tt">写作台</span><span class="ctl min"></span><span class="ctl max"></span><span class="ctl cls"></span></div>
+      <div class="wd">
+        <div class="wd-rail">
+          <div class="topic-k">本期主题</div>
+          <div class="topic">我做了一个「AI 版的 Windows」</div>
+          <div class="pk">一稿多平台</div>
+          <div class="plat on">📰 公众号<span class="st">已生成</span></div>
+          <div class="plat">📕 小红书<span class="st">已生成</span></div>
+          <div class="plat">𝕏 推特<span class="st">已生成</span></div>
+          <div class="plat">📘 知乎<span class="st">生成中…</span></div>
+          <div class="plat" style="background:transparent;border:1px dashed rgba(255,255,255,0.25);justify-content:center;color:#e8d3b3;">+ 加平台</div>
+        </div>
+        <div class="wd-paper-wrap">
+          <div class="paper">
+            <div class="ttl">我做了一个「AI 版的 Windows」</div>
+            <div class="by">公众号版 · AI 自动按本平台文风成稿 · 约 1800 字</div>
+            <p>现在大部分 AI 产品都是对话。对话很自然,但有时候不如界面直观 —— 一个最简单的记笔记需求,塞进聊天流里就散了。</p>
+            <p>所以我想:我们还是需要<span class="em">界面</span>、需要应用。而正好,现在 AI 越来越能写代码,每个人都可以照自己的习惯造自己的应用。</p>
+            <p>于是有了 Wandesk —— 一台 <span class="em">AI 桌面</span>。你描述一个应用,它就在你本地把它造出来,放到桌面上,反复打开、随手改……</p>
+            <div class="tagline">— 结尾引导关注 · <span class="hash">#AI #独立开发 #Wandesk</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="taskbar">
+      <div class="launch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></div>
+      <div class="tb-sep"></div>
+      <div class="tb-win active"><span class="i">✍️</span>写作台</div>
+      <div class="clock"><div class="t">21:05</div><div class="d">5/30</div></div>
+    </div>
+  </div>
+  <script>function fit(){var s=document.querySelector('.screen');s.style.transform='scale('+Math.min(innerWidth/1600,innerHeight/900)+')';}addEventListener('resize',fit);fit();</script>
+</body>
+</html>

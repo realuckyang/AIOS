@@ -1,0 +1,2435 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AIOS - Slate Industrial Workstation</title>
+  <!-- Material Symbols & Fonts -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Outfit:wght@100..900&display=swap" rel="stylesheet">
+  
+  <style>
+    /* Design Tokens */
+    :root {
+      --bg-darker: #090a0f;
+      --bg-dark: #0e1017;
+      --bg-panel: #141722;
+      --bg-active: #1d2130;
+      
+      --border-color: #24293a;
+      --border-focus: #00b0ff;
+      
+      --text-main: #e2e8f0;
+      --text-muted: #64748b;
+      --text-dim: #475569;
+      
+      --accent: #00e5ff;
+      --accent-rgb: 0, 229, 255;
+      --success: #00e676;
+      --warning: #ffd600;
+      --danger: #ff1744;
+      
+      --font-ui: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      background-color: var(--bg-darker);
+      color: var(--text-main);
+      font-family: var(--font-ui);
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+      font-size: 14px;
+    }
+
+    /* Core OS Layout Grid */
+    #aios-container {
+      display: grid;
+      grid-template-columns: 76px 1fr;
+      height: 100vh;
+      width: 100vw;
+    }
+
+    /* Mobile Header System Bar (Desktop: Hidden) */
+    .mobile-sys-bar {
+      display: none;
+      height: 48px;
+      background-color: var(--bg-darker);
+      border-bottom: 1px solid var(--border-color);
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      z-index: 100;
+      user-select: none;
+    }
+
+    .mobile-menu-trigger {
+      background: transparent;
+      border: none;
+      color: var(--accent);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .mobile-sys-title {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: var(--text-main);
+    }
+
+    /* Left Switcher (Desktop) */
+    .switcher {
+      background-color: var(--bg-darker);
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px 0;
+      justify-content: space-between;
+      user-select: none;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .switcher-top {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+      height: calc(100% - 60px);
+    }
+
+    .os-logo {
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--accent);
+      border-radius: 4px;
+      color: var(--accent);
+      font-family: var(--font-mono);
+      font-weight: 800;
+      font-size: 14px;
+      letter-spacing: -1px;
+      margin-bottom: 20px;
+      box-shadow: 0 0 8px rgba(var(--accent-rgb), 0.2);
+      flex-shrink: 0;
+    }
+
+    /* Scrollable Apps container inside Switcher to handle more apps */
+    .switcher-apps-container {
+      flex: 1;
+      width: 100%;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      padding: 4px 0;
+    }
+
+    /* Hide scrollbar for switcher apps container */
+    .switcher-apps-container::-webkit-scrollbar {
+      display: none;
+    }
+    .switcher-apps-container {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    .switcher-btn {
+      width: 48px;
+      height: 48px;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    .switcher-btn span.material-symbols-outlined {
+      font-size: 20px;
+    }
+
+    .switcher-btn span.btn-label {
+      font-size: 8px;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    .switcher-btn:hover {
+      color: var(--text-main);
+      background-color: var(--bg-panel);
+    }
+
+    .switcher-btn.active {
+      color: var(--accent);
+      background-color: var(--bg-active);
+      border-color: rgba(var(--accent-rgb), 0.3);
+      box-shadow: 0 0 10px rgba(var(--accent-rgb), 0.1);
+    }
+
+    .switcher-btn.active::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 12px;
+      bottom: 12px;
+      width: 3px;
+      background-color: var(--accent);
+      border-radius: 0 2px 2px 0;
+    }
+
+    .switcher-bottom {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      flex-shrink: 0;
+    }
+
+    .system-status {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: var(--success);
+      box-shadow: 0 0 6px var(--success);
+      animation: heartbeat 2s infinite;
+    }
+
+    @keyframes heartbeat {
+      0%, 100% { opacity: 0.6; }
+      50% { opacity: 1; box-shadow: 0 0 8px var(--success); }
+    }
+
+    /* ---------------------------------------------------- */
+    /* MOBILE NAVIGATION DRAWER (collapsible overlay menu) */
+    /* ---------------------------------------------------- */
+    .drawer-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(4px);
+      z-index: 999;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    .drawer-overlay.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .drawer-menu {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 260px;
+      height: 100%;
+      background-color: var(--bg-darker);
+      border-right: 1px solid var(--border-color);
+      transform: translateX(-100%);
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      flex-direction: column;
+      padding: 20px;
+    }
+
+    .drawer-overlay.open .drawer-menu {
+      transform: translateX(0);
+    }
+
+    .drawer-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 16px;
+    }
+
+    .drawer-logo {
+      font-family: var(--font-mono);
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .drawer-close {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+
+    .drawer-apps-list {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .drawer-app-btn {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 12px 16px;
+      background: transparent;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      color: var(--text-muted);
+      width: 100%;
+      text-align: left;
+      cursor: pointer;
+      font-family: var(--font-ui);
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+
+    .drawer-app-btn span.material-symbols-outlined {
+      font-size: 22px;
+    }
+
+    .drawer-app-btn:hover {
+      background-color: var(--bg-panel);
+      color: var(--text-main);
+    }
+
+    .drawer-app-btn.active {
+      background-color: var(--bg-active);
+      color: var(--accent);
+      border-color: rgba(var(--accent-rgb), 0.2);
+    }
+
+    /* Workspace Panel */
+    .workspace {
+      background-color: var(--bg-dark);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Apps Screens */
+    .app-screen {
+      display: none;
+      width: 100%;
+      height: 100%;
+    }
+
+    .app-screen.active {
+      display: grid;
+    }
+
+    /* Common Sub-App Shell Layout */
+    .app-layout-sidebar {
+      grid-template-columns: 240px 1fr;
+      height: 100%;
+    }
+
+    .app-sidebar {
+      background-color: var(--bg-panel);
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+
+    .app-main {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      background-color: var(--bg-dark);
+      overflow: hidden;
+    }
+
+    /* ---------------------------------------------------- */
+    /* APP: CHAT / AGENT */
+    /* ---------------------------------------------------- */
+    .sidebar-header {
+      padding: 16px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .sidebar-title {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      font-weight: 700;
+    }
+
+    .btn-action-sm {
+      background: var(--bg-active);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .btn-action-sm:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .session-list {
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .session-item {
+      padding: 10px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: 1px solid transparent;
+    }
+
+    .session-item:hover {
+      background-color: var(--bg-active);
+    }
+
+    .session-item.active {
+      background-color: var(--bg-active);
+      border-color: rgba(var(--accent-rgb), 0.2);
+    }
+
+    .session-title {
+      font-weight: 500;
+      color: var(--text-main);
+      margin-bottom: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .session-meta {
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+    }
+
+    /* Agent Parameters panel in Sidebar */
+    .sidebar-stats {
+      margin-top: auto;
+      border-top: 1px solid var(--border-color);
+      padding: 16px;
+      background-color: rgba(0, 0, 0, 0.2);
+    }
+
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-size: 11px;
+    }
+
+    .stat-label {
+      color: var(--text-muted);
+    }
+
+    .stat-val {
+      font-family: var(--font-mono);
+      color: var(--accent);
+    }
+
+    /* Chat Area */
+    .chat-header {
+      height: 52px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      background-color: var(--bg-panel);
+    }
+
+    .chat-header-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .active-model-badge {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      background-color: rgba(var(--accent-rgb), 0.1);
+      color: var(--accent);
+      padding: 2px 8px;
+      border-radius: 4px;
+      border: 1px solid rgba(var(--accent-rgb), 0.2);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .active-model-badge::before {
+      content: '';
+      display: block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: var(--accent);
+    }
+
+    .chat-header-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    /* Messages Log Style */
+    .chat-history {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .msg-block {
+      display: flex;
+      flex-direction: column;
+      max-width: 90%;
+    }
+
+    .msg-block.user {
+      align-self: flex-start;
+    }
+
+    .msg-block.assistant {
+      align-self: flex-start;
+      width: 100%;
+    }
+
+    .msg-meta {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .msg-meta .role-usr {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .msg-meta .role-agt {
+      color: var(--success);
+      font-weight: 600;
+    }
+
+    .msg-content {
+      background-color: var(--bg-panel);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 12px 16px;
+      line-height: 1.6;
+      word-break: break-all;
+    }
+
+    .msg-block.user .msg-content {
+      background-color: rgba(var(--accent-rgb), 0.03);
+      border-color: rgba(var(--accent-rgb), 0.15);
+    }
+
+    /* Collapsible Console Elements */
+    .console-trace {
+      margin-top: 10px;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .console-trace-header {
+      background-color: #1a1e29;
+      padding: 6px 12px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      user-select: none;
+    }
+
+    .console-trace-header:hover {
+      background-color: #202635;
+      color: var(--text-main);
+    }
+
+    .console-trace-header.open span.arrow {
+      transform: rotate(90deg);
+    }
+
+    .console-trace-header span.arrow {
+      transition: transform 0.2s;
+      font-size: 14px;
+    }
+
+    .console-trace-content {
+      background-color: #0b0c10;
+      padding: 12px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: #76ff03; /* Terminal green */
+      white-space: pre-wrap;
+      border-top: 1px solid var(--border-color);
+      max-height: 250px;
+      overflow-y: auto;
+      display: none;
+    }
+
+    .console-trace-content.open {
+      display: block;
+    }
+
+    /* Collapsible Thought block */
+    .thought-trace {
+      margin-top: 8px;
+      border-left: 2px solid var(--text-dim);
+      padding-left: 12px;
+      margin-bottom: 8px;
+    }
+
+    .thought-header {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 4px;
+      user-select: none;
+    }
+
+    .thought-header:hover {
+      color: var(--text-main);
+    }
+
+    .thought-content {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.5;
+      display: none;
+    }
+
+    .thought-content.open {
+      display: block;
+    }
+
+    /* Chat Prompt Input area */
+    .chat-input-container {
+      padding: 16px 20px;
+      border-top: 1px solid var(--border-color);
+      background-color: var(--bg-panel);
+    }
+
+    .chat-input-wrapper {
+      background-color: var(--bg-dark);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .chat-input-wrapper:focus-within {
+      border-color: var(--border-focus);
+      box-shadow: 0 0 8px rgba(0, 176, 255, 0.15);
+    }
+
+    .chat-textarea {
+      background: transparent;
+      border: none;
+      color: var(--text-main);
+      font-family: var(--font-ui);
+      font-size: 13px;
+      resize: none;
+      height: 48px;
+      outline: none;
+      width: 100%;
+    }
+
+    .chat-input-bottom {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .input-tools {
+      display: flex;
+      gap: 8px;
+      color: var(--text-muted);
+    }
+
+    .input-tool-icon {
+      font-size: 18px;
+      cursor: pointer;
+    }
+
+    .input-tool-icon:hover {
+      color: var(--accent);
+    }
+
+    .btn-send {
+      background-color: var(--accent);
+      color: var(--bg-darker);
+      border: none;
+      padding: 6px 16px;
+      border-radius: 4px;
+      font-weight: 600;
+      font-family: var(--font-ui);
+      font-size: 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: background-color 0.2s;
+    }
+
+    .btn-send:hover {
+      background-color: #00b0ff;
+    }
+
+    /* ---------------------------------------------------- */
+    /* APP: TASKS */
+    /* ---------------------------------------------------- */
+    .task-layout {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      height: 100%;
+    }
+
+    .task-sidebar {
+      background-color: var(--bg-panel);
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .task-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .task-card {
+      background-color: var(--bg-dark);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .task-card:hover {
+      border-color: rgba(var(--accent-rgb), 0.3);
+    }
+
+    .task-card.active {
+      border-color: var(--accent);
+      background-color: var(--bg-active);
+    }
+
+    .task-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+
+    .task-id {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    /* Badges */
+    .badge {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .badge-running {
+      background-color: rgba(0, 230, 118, 0.1);
+      color: var(--success);
+      border: 1px solid rgba(0, 230, 118, 0.2);
+    }
+
+    .badge-done {
+      background-color: rgba(100, 116, 139, 0.1);
+      color: var(--text-muted);
+      border: 1px solid rgba(100, 116, 139, 0.2);
+    }
+
+    .badge-aborted {
+      background-color: rgba(255, 23, 68, 0.1);
+      color: var(--danger);
+      border: 1px solid rgba(255, 23, 68, 0.2);
+    }
+
+    .task-title {
+      font-weight: 500;
+      font-size: 13px;
+      margin-bottom: 6px;
+      color: var(--text-main);
+    }
+
+    .task-card-bottom {
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+    }
+
+    /* Tasks Main View */
+    .task-detail {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      background-color: var(--bg-dark);
+    }
+
+    .task-detail-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border-color);
+      background-color: var(--bg-panel);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .task-detail-title {
+      font-size: 16px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .task-action-bar {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-danger {
+      background-color: rgba(255, 23, 68, 0.1);
+      color: var(--danger);
+      border: 1px solid rgba(255, 23, 68, 0.3);
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-danger:hover {
+      background-color: var(--danger);
+      color: var(--bg-darker);
+    }
+
+    .task-meta-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border-color);
+      background-color: rgba(0, 0, 0, 0.1);
+      gap: 16px;
+    }
+
+    .task-meta-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .task-meta-label {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .task-meta-value {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-main);
+    }
+
+    /* Terminal Console */
+    .task-terminal {
+      flex: 1;
+      background-color: #050608;
+      margin: 20px;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.8);
+    }
+
+    .terminal-header {
+      background-color: #0e1015;
+      padding: 8px 16px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .terminal-title {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .terminal-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: var(--success);
+    }
+
+    .terminal-body {
+      flex: 1;
+      padding: 16px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: #9cdcfe;
+      overflow-y: auto;
+      line-height: 1.5;
+    }
+
+    .terminal-line {
+      margin-bottom: 4px;
+      white-space: pre-wrap;
+    }
+
+    .terminal-line.cmd {
+      color: var(--accent);
+    }
+
+    .terminal-line.success {
+      color: var(--success);
+    }
+
+    .terminal-line.error {
+      color: var(--danger);
+    }
+
+    /* ---------------------------------------------------- */
+    /* APP: MEMORY */
+    /* ---------------------------------------------------- */
+    .memory-layout {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      padding: 20px;
+      overflow: hidden;
+    }
+
+    .memory-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      gap: 16px;
+    }
+
+    .memory-tabs {
+      display: flex;
+      background-color: var(--bg-panel);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 2px;
+    }
+
+    .memory-tab {
+      padding: 6px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      color: var(--text-muted);
+      font-weight: 500;
+      font-size: 12px;
+      transition: all 0.2s;
+      border: none;
+      background: transparent;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .memory-tab.active {
+      background-color: var(--bg-active);
+      color: var(--accent);
+    }
+
+    .search-wrapper {
+      position: relative;
+      flex: 1;
+      max-width: 320px;
+    }
+
+    .search-input {
+      width: 100%;
+      background-color: var(--bg-panel);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 8px 12px 8px 36px;
+      color: var(--text-main);
+      font-size: 12px;
+      outline: none;
+    }
+
+    .search-input:focus {
+      border-color: var(--accent);
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      font-size: 18px;
+    }
+
+    /* Memory Grid/Table Layout */
+    .memory-table-container {
+      flex: 1;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      background-color: var(--bg-panel);
+      overflow-y: auto;
+    }
+
+    .memory-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 12px;
+    }
+
+    .memory-table th {
+      background-color: rgba(0, 0, 0, 0.2);
+      border-bottom: 1px solid var(--border-color);
+      padding: 12px 16px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-size: 10px;
+      letter-spacing: 0.5px;
+    }
+
+    .memory-table td {
+      border-bottom: 1px solid var(--border-color);
+      padding: 14px 16px;
+      vertical-align: middle;
+      color: var(--text-main);
+    }
+
+    .memory-table tr:hover td {
+      background-color: rgba(255, 255, 255, 0.01);
+    }
+
+    .visibility-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-weight: 500;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 11px;
+    }
+
+    .vis-private {
+      background-color: rgba(255, 23, 68, 0.1);
+      color: #ff5252;
+    }
+
+    .vis-workspace {
+      background-color: rgba(0, 229, 255, 0.1);
+      color: var(--accent);
+    }
+
+    .vis-public {
+      background-color: rgba(0, 230, 118, 0.1);
+      color: var(--success);
+    }
+
+    .tag {
+      background-color: var(--bg-active);
+      border: 1px solid var(--border-color);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+
+    .memory-content {
+      max-width: 450px;
+      line-height: 1.5;
+    }
+
+    /* ---------------------------------------------------- */
+    /* APP: SETTINGS */
+    /* ---------------------------------------------------- */
+    .settings-layout {
+      display: grid;
+      grid-template-columns: 200px 1fr;
+      height: 100%;
+    }
+
+    .settings-nav {
+      background-color: var(--bg-panel);
+      border-right: 1px solid var(--border-color);
+      padding: 16px 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .settings-nav-item {
+      padding: 10px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      color: var(--text-muted);
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: all 0.2s;
+    }
+
+    .settings-nav-item:hover {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+    }
+
+    .settings-nav-item.active {
+      background-color: var(--bg-active);
+      color: var(--accent);
+    }
+
+    .settings-content {
+      padding: 30px;
+      overflow-y: auto;
+      max-width: 800px;
+    }
+
+    .settings-section {
+      margin-bottom: 32px;
+    }
+
+    .settings-section-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-main);
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border-color);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-label {
+      font-weight: 500;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .form-control-input {
+      background-color: var(--bg-panel);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      padding: 10px 12px;
+      color: var(--text-main);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      outline: none;
+      width: 100%;
+    }
+
+    .form-control-input:focus {
+      border-color: var(--accent);
+    }
+
+    .form-desc {
+      font-size: 11px;
+      color: var(--text-dim);
+    }
+
+    /* Grid of resource usage for setting dashboard */
+    .resource-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .resource-card {
+      background-color: var(--bg-panel);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 16px;
+    }
+
+    .resource-title {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .resource-bar-wrapper {
+      height: 8px;
+      background-color: var(--bg-dark);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .resource-bar {
+      height: 100%;
+      background-color: var(--accent);
+      border-radius: 4px;
+      width: 40%;
+      box-shadow: 0 0 8px var(--accent);
+    }
+
+    .resource-bar.ram {
+      background-color: var(--warning);
+      box-shadow: 0 0 8px var(--warning);
+      width: 72%;
+    }
+
+    /* Custom Checkbox/Toggle Switch */
+    .switch-group {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px;
+      background-color: rgba(255, 255, 255, 0.01);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      margin-bottom: 10px;
+    }
+
+    .switch-label-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .switch-title {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-main);
+    }
+
+    .switch-desc {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 44px;
+      height: 24px;
+    }
+
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: var(--bg-active);
+      transition: .3s;
+      border-radius: 24px;
+      border: 1px solid var(--border-color);
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 16px;
+      width: 16px;
+      left: 3px;
+      bottom: 3px;
+      background-color: var(--text-muted);
+      transition: .3s;
+      border-radius: 50%;
+    }
+
+    input:checked + .slider {
+      background-color: rgba(0, 229, 255, 0.1);
+      border-color: var(--accent);
+    }
+
+    input:checked + .slider:before {
+      transform: translateX(20px);
+      background-color: var(--accent);
+    }
+
+    /* SAVE BUTTON */
+    .btn-primary {
+      background-color: var(--accent);
+      color: var(--bg-darker);
+      border: none;
+      padding: 10px 24px;
+      border-radius: 4px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .btn-primary:hover {
+      background-color: #00b0ff;
+    }
+
+    /* ---------------------------------------------------- */
+    /* GENERAL PLACEHOLDER APP SCREENS FOR NEW MOCK APPS */
+    /* ---------------------------------------------------- */
+    .placeholder-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      background-color: var(--bg-dark);
+      border: 1px solid var(--border-color);
+      margin: 20px;
+      border-radius: 6px;
+      gap: 16px;
+    }
+
+    .placeholder-icon {
+      font-size: 64px;
+      color: var(--accent);
+      text-shadow: 0 0 12px rgba(var(--accent-rgb), 0.3);
+    }
+
+    .placeholder-title {
+      font-size: 18px;
+      font-weight: 600;
+      font-family: var(--font-mono);
+    }
+
+    .placeholder-desc {
+      color: var(--text-muted);
+      max-width: 400px;
+      text-align: center;
+      line-height: 1.5;
+    }
+
+    /* ---------------------------------------------------- */
+    /* RESPONSIVE DESIGN (DRAWER FOR MOBILE) */
+    /* ---------------------------------------------------- */
+    @media (max-width: 768px) {
+      #aios-container {
+        grid-template-columns: 1fr;
+        grid-template-rows: 48px 1fr; /* Header on top, workspace at bottom */
+      }
+
+      .mobile-sys-bar {
+        display: flex;
+        grid-row: 1;
+      }
+
+      .switcher {
+        display: none; /* Hide the fixed sidebar layout entirely on mobile */
+      }
+
+      .workspace {
+        grid-row: 2;
+        height: 100%;
+      }
+
+      /* Chat responsive layout */
+      .app-layout-sidebar {
+        grid-template-columns: 1fr; /* Hide sidebars on mobile for space */
+      }
+
+      .app-sidebar {
+        display: none; 
+      }
+
+      /* Task responsive layout */
+      .task-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .task-sidebar {
+        display: none;
+      }
+
+      /* Settings responsive layout */
+      .settings-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .settings-nav {
+        display: none;
+      }
+
+      .settings-content {
+        padding: 16px;
+      }
+
+      .task-meta-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+        padding: 12px;
+      }
+
+      .task-terminal {
+        margin: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- MOBILE SYSTEM HEADER BAR -->
+  <header class="mobile-sys-bar">
+    <button class="mobile-menu-trigger" onclick="toggleDrawer(true)">
+      <span class="material-symbols-outlined" style="font-size:24px;">menu</span>
+    </button>
+    <div class="mobile-sys-title" id="mobile-app-title">AIOS // 会话控制</div>
+    <div class="status-dot"></div>
+  </header>
+
+  <!-- COLLAPSIBLE MOBILE NAVIGATION DRAWER -->
+  <div class="drawer-overlay" id="mobile-drawer" onclick="toggleDrawer(false)">
+    <aside class="drawer-menu" onclick="event.stopPropagation()">
+      <div class="drawer-header">
+        <div class="drawer-logo">
+          <span>AIOS</span>
+          <span style="font-size: 10px; border:1px solid var(--accent); padding:1px 4px; border-radius:3px;">SYSTEM</span>
+        </div>
+        <button class="drawer-close" onclick="toggleDrawer(false)">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+
+      <!-- High-density menu support for infinite scrollable apps list -->
+      <nav class="drawer-apps-list">
+        <button class="drawer-app-btn active" data-target="app-chat" onclick="switchMobileApp('app-chat', '会话控制', this)">
+          <span class="material-symbols-outlined">terminal</span>
+          <span>会话控制 (Chat)</span>
+        </button>
+        <button class="drawer-app-btn" data-target="app-tasks" onclick="switchMobileApp('app-tasks', '后台任务', this)">
+          <span class="material-symbols-outlined">task_alt</span>
+          <span>后台任务 (Tasks)</span>
+        </button>
+        <button class="drawer-app-btn" data-target="app-memory" onclick="switchMobileApp('app-memory', '记忆中心', this)">
+          <span class="material-symbols-outlined">psychology</span>
+          <span>记忆中心 (Memory)</span>
+        </button>
+        <button class="drawer-app-btn" data-target="app-files" onclick="switchMobileApp('app-files', '文件管理器', this)">
+          <span class="material-symbols-outlined">folder_open</span>
+          <span>文件管理器 (Files)</span>
+        </button>
+        <button class="drawer-app-btn" data-target="app-terminal" onclick="switchMobileApp('app-terminal', '系统终端', this)">
+          <span class="material-symbols-outlined">code</span>
+          <span>系统终端 (Terminal)</span>
+        </button>
+        <button class="drawer-app-btn" data-target="app-browser" onclick="switchMobileApp('app-browser', '内置浏览器', this)">
+          <span class="material-symbols-outlined">public</span>
+          <span>内置浏览器 (Browser)</span>
+        </button>
+        <button class="drawer-app-btn" data-target="app-audio" onclick="switchMobileApp('app-audio', '音频分析', this)">
+          <span class="material-symbols-outlined">volume_up</span>
+          <span>音频分析 (Audio)</span>
+        </button>
+        <button class="drawer-app-btn" data-target="app-settings" onclick="switchMobileApp('app-settings', '系统设置', this)">
+          <span class="material-symbols-outlined">settings</span>
+          <span>系统设置 (Settings)</span>
+        </button>
+      </nav>
+    </aside>
+  </div>
+
+  <div id="aios-container">
+    
+    <!-- LEFT SWITCHER (DESKTOP ONLY SIDEBAR) -->
+    <nav class="switcher">
+      <div class="switcher-top">
+        <div class="os-logo">AIOS</div>
+        
+        <!-- Scrollable apps wrapper for handling 8+ apps without vertical overflow -->
+        <div class="switcher-apps-container">
+          <button class="switcher-btn active" data-target="app-chat" title="会话控制">
+            <span class="material-symbols-outlined">terminal</span>
+            <span class="btn-label">会话控制</span>
+          </button>
+
+          <button class="switcher-btn" data-target="app-tasks" title="后台任务">
+            <span class="material-symbols-outlined">task_alt</span>
+            <span class="btn-label">后台任务</span>
+          </button>
+
+          <button class="switcher-btn" data-target="app-memory" title="记忆中心">
+            <span class="material-symbols-outlined">psychology</span>
+            <span class="btn-label">记忆中心</span>
+          </button>
+
+          <button class="switcher-btn" data-target="app-files" title="文件管理器">
+            <span class="material-symbols-outlined">folder_open</span>
+            <span class="btn-label">文件管理器</span>
+          </button>
+
+          <button class="switcher-btn" data-target="app-terminal" title="系统终端">
+            <span class="material-symbols-outlined">code</span>
+            <span class="btn-label">系统终端</span>
+          </button>
+
+          <button class="switcher-btn" data-target="app-browser" title="内置浏览器">
+            <span class="material-symbols-outlined">public</span>
+            <span class="btn-label">网页浏览器</span>
+          </button>
+
+          <button class="switcher-btn" data-target="app-audio" title="音频分析">
+            <span class="material-symbols-outlined">volume_up</span>
+            <span class="btn-label">音频分析</span>
+          </button>
+
+          <button class="switcher-btn" data-target="app-settings" title="系统设置">
+            <span class="material-symbols-outlined">settings</span>
+            <span class="btn-label">系统设置</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="switcher-bottom">
+        <div class="system-status">
+          <div class="status-dot"></div>
+        </div>
+      </div>
+    </nav>
+
+    <!-- RIGHT WORKSPACE AREA -->
+    <main class="workspace">
+
+      <!-- APP 1: CHAT / AGENT CONSOLE -->
+      <section id="app-chat" class="app-screen app-layout-sidebar active">
+        <!-- Chat App Sidebar -->
+        <aside class="app-sidebar">
+          <div class="sidebar-header">
+            <span class="sidebar-title">控制台会话</span>
+            <button class="btn-action-sm" onclick="addNewChat()">
+              <span class="material-symbols-outlined" style="font-size:12px;">add</span> 新建
+            </button>
+          </div>
+          <div class="session-list" id="chat-sessions">
+            <div class="session-item active" onclick="switchSession(this, 'Tomato Clock')">
+              <div class="session-title">番茄时钟 Web 页面生成</div>
+              <div class="session-meta">
+                <span>gemini-2.5</span>
+                <span>3 mins ago</span>
+              </div>
+            </div>
+            <div class="session-item" onclick="switchSession(this, 'Database Clean')">
+              <div class="session-title">旧数据迁移与表结构清理</div>
+              <div class="session-meta">
+                <span>deepseek-r1</span>
+                <span>1 hour ago</span>
+              </div>
+            </div>
+            <div class="session-item" onclick="switchSession(this, 'Git Sync')">
+              <div class="session-title">Gitee & GitHub 仓库发布同步</div>
+              <div class="session-meta">
+                <span>qwen-coder</span>
+                <span>Yesterday</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="sidebar-stats">
+            <div class="stat-row">
+              <span class="stat-label">AGENT 状态</span>
+              <span class="stat-val" style="color:var(--success);">READY</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">活跃工具</span>
+              <span class="stat-val">Shell Executor</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">上下文轮数</span>
+              <span class="stat-val">12 / 50</span>
+            </div>
+          </div>
+        </aside>
+
+        <!-- Chat Main Area -->
+        <div class="app-main">
+          <div class="chat-header">
+            <div class="chat-header-info">
+              <h2 style="font-size: 14px; font-weight:600;" id="current-chat-title">番茄时钟 Web 页面生成</h2>
+              <span class="active-model-badge">gemini-2.5-pro</span>
+            </div>
+            <div class="chat-header-actions">
+              <button class="btn-action-sm"><span class="material-symbols-outlined" style="font-size:14px;">delete</span> 清理窗口</button>
+            </div>
+          </div>
+
+          <div class="chat-history" id="chat-history-log">
+            <!-- Message: User -->
+            <div class="msg-block user">
+              <div class="msg-meta">
+                <span class="role-usr">usr@aios</span>
+                <span>14:38:02</span>
+              </div>
+              <div class="msg-content">
+                帮我做一个番茄钟，左边大字显示倒计时，右边记录今天完成的几个 25 分钟。要求直接生成前端 Vue 组件。
+              </div>
+            </div>
+
+            <!-- Message: Assistant with Tool Traces -->
+            <div class="msg-block assistant">
+              <div class="msg-meta">
+                <span class="role-agt">agent@aios</span>
+                <span>14:38:15</span>
+              </div>
+              <div class="msg-content">
+                <!-- Thought process -->
+                <div class="thought-trace">
+                  <div class="thought-header" onclick="toggleTrace(this)">
+                    <span class="material-symbols-outlined" style="font-size:14px;">keyboard_arrow_right</span>
+                    <span>思考逻辑 (Thought Process)</span>
+                  </div>
+                  <div class="thought-content">
+                    1. 用户需要一个包含番茄时钟的单文件 Vue 组件。<br>
+                    2. 时钟需要左侧显示倒计时，右侧显示当天已完成番茄钟的历史。<br>
+                    3. 我需要首先在 `ui/src/apps/tomato-timer/` 目录下创建新应用页面。<br>
+                    4. 检查是否有这个目录，没有的话创建，然后写入 `index.vue` 代码。<br>
+                    5. 在主应用注册表中添加该应用链接，最后通过 Vite 重建前端。
+                  </div>
+                </div>
+
+                <!-- Tool Exec Trace -->
+                <div class="console-trace">
+                  <div class="console-trace-header" onclick="toggleConsole(this)">
+                    <span>$ shell | mkdir -p ui/src/apps/tomato-timer</span>
+                    <span class="material-symbols-outlined arrow">keyboard_arrow_right</span>
+                  </div>
+                  <div class="console-trace-content">
+(no output)
+                  </div>
+                </div>
+
+                <div class="console-trace" style="margin-top:5px;">
+                  <div class="console-trace-header" onclick="toggleConsole(this)">
+                    <span>$ shell | cat << 'EOF' > ui/src/apps/tomato-timer/index.vue</span>
+                    <span class="material-symbols-outlined arrow">keyboard_arrow_right</span>
+                  </div>
+                  <div class="console-trace-content">
+[File Written Successfully]: ui/src/apps/tomato-timer/index.vue (122 lines written)
+                  </div>
+                </div>
+
+                我已经在本地为您生成了番茄钟应用页面。组件采用分栏布局，左侧是大字倒计时面板（包含播放、暂停与重置操作），右侧则是基于 Vue 的动态累加器，实时记录您当天完成的工作周期。
+              </div>
+            </div>
+          </div>
+
+          <!-- Input Area -->
+          <div class="chat-input-container">
+            <div class="chat-input-wrapper">
+              <textarea class="chat-textarea" id="chat-input-box" placeholder="输入指令，输入 '/' 唤醒系统工具..." onkeydown="handleChatSubmit(event)"></textarea>
+              <div class="chat-input-bottom">
+                <div class="input-tools">
+                  <span class="material-symbols-outlined input-tool-icon" title="系统沙盒文件">folder_open</span>
+                  <span class="material-symbols-outlined input-tool-icon" title="注入本地上下文">integration_instructions</span>
+                  <span class="material-symbols-outlined input-tool-icon" title="模型运行设置">tune</span>
+                </div>
+                <button class="btn-send" onclick="sendChatMessage()">
+                  <span>执行</span>
+                  <span class="material-symbols-outlined" style="font-size:14px;">terminal</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- APP 2: TASKS MANAGER -->
+      <section id="app-tasks" class="app-screen task-layout">
+        <!-- Sidebar: Task List -->
+        <aside class="task-sidebar">
+          <div class="sidebar-header">
+            <span class="sidebar-title">后台运行任务</span>
+          </div>
+          <div class="task-list">
+            <div class="task-card active" onclick="switchTask(this, 'Deploy Tomato Timer')">
+              <div class="task-card-header">
+                <span class="task-id">#1088</span>
+                <span class="badge badge-running">
+                  <span class="status-dot" style="margin-right:2px; width:4px; height:4px;"></span>Running
+                </span>
+              </div>
+              <div class="task-title">番茄时钟前端资源编译构建</div>
+              <div class="task-card-bottom">
+                <span>Vite Build</span>
+                <span>14:40:02</span>
+              </div>
+            </div>
+
+            <div class="task-card" onclick="switchTask(this, 'Database Optimization')">
+              <div class="task-card-header">
+                <span class="task-id">#1087</span>
+                <span class="badge badge-done">Done</span>
+              </div>
+              <div class="task-title">SQLite 索引重建与垃圾回收</div>
+              <div class="task-card-bottom">
+                <span>SQLite CLI</span>
+                <span>13:12:45</span>
+              </div>
+            </div>
+
+            <div class="task-card" onclick="switchTask(this, 'Gitee Sync Task')">
+              <div class="task-card-header">
+                <span class="task-id">#1086</span>
+                <span class="badge badge-aborted">Aborted</span>
+              </div>
+              <div class="task-title">Git 远端多分支同步同步推送</div>
+              <div class="task-card-bottom">
+                <span>Git Remote</span>
+                <span>Yesterday</span>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        <!-- Main Workspace: Console/Logs -->
+        <div class="task-detail">
+          <div class="task-detail-header">
+            <div class="task-detail-title">
+              <span id="active-task-title">番茄时钟前端资源编译构建</span>
+              <span class="badge badge-running" id="active-task-badge">Running</span>
+            </div>
+            <div class="task-action-bar">
+              <button class="btn-danger" id="abort-btn" onclick="abortActiveTask()"><span class="material-symbols-outlined" style="font-size:14px;">cancel</span> 中断任务</button>
+            </div>
+          </div>
+
+          <div class="task-meta-grid">
+            <div class="task-meta-item">
+              <span class="task-meta-label">任务 ID</span>
+              <span class="task-meta-value" id="active-task-id">#1088</span>
+            </div>
+            <div class="task-meta-item">
+              <span class="task-meta-label">模式 / 调度</span>
+              <span class="task-meta-value">Agent Mode</span>
+            </div>
+            <div class="task-meta-item">
+              <span class="task-meta-label">发起应用</span>
+              <span class="task-meta-value">chat</span>
+            </div>
+            <div class="task-meta-item">
+              <span class="task-meta-label">开始时间</span>
+              <span class="task-meta-value">2026-06-02 14:40:02</span>
+            </div>
+          </div>
+
+          <!-- Live Terminal Output -->
+          <div class="task-terminal">
+            <div class="terminal-header">
+              <div class="terminal-title">
+                <div class="terminal-dot" id="terminal-dot-indicator"></div>
+                <span>PROCESS CONSOLE OUTPUT</span>
+              </div>
+              <div style="font-size:10px; color:var(--text-muted); font-family:var(--font-mono)">PID: 84392</div>
+            </div>
+            <div class="terminal-body" id="task-terminal-logs">
+              <div class="terminal-line cmd">usr@aios:~$ vite build --config ui/vite.config.js ui</div>
+              <div class="terminal-line">vite v7.3.1 building for production...</div>
+              <div class="terminal-line">transforming (24) ui/src/main.js</div>
+              <div class="terminal-line">✓ 56 modules transformed.</div>
+              <div class="terminal-line">rendering chunks...</div>
+              <div class="terminal-line">computing bundle sizes...</div>
+              <div class="terminal-line success">dist/index.html                     0.45 kB │ map: 0.12 kB</div>
+              <div class="terminal-line success">dist/assets/index-D78s92.js         385.20 kB │ map: 890.15 kB</div>
+              <div class="terminal-line success">dist/assets/index-B1x2n4.css         42.50 kB │ map: 12.42 kB</div>
+              <div class="terminal-line">✓ built in 1.48s</div>
+              <div class="terminal-line cmd" style="margin-top: 10px;">usr@aios:~$ cp -r ui/dist/ ~/.aios/app/ui_build/</div>
+              <div class="terminal-line">Syncing assets to dynamic runtime folder...</div>
+              <div class="terminal-line success">Files synced successfully. Hot update applied to http://localhost:9502/apps/tomato-timer/</div>
+              <div class="terminal-line" style="margin-top: 10px; color:#ffd600;">[STATUS] Task daemon listening to local file triggers...</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- APP 3: MEMORY VAULT -->
+      <section id="app-memory" class="app-screen memory-layout">
+        <div class="memory-header">
+          <div class="memory-tabs">
+            <button class="memory-tab active" onclick="filterMemory('all', this)">全部</button>
+            <button class="memory-tab" onclick="filterMemory('private', this)"><span class="material-symbols-outlined" style="font-size:14px;">lock</span>私有</button>
+            <button class="memory-tab" onclick="filterMemory('workspace', this)"><span class="material-symbols-outlined" style="font-size:14px;">group</span>工作区</button>
+            <button class="memory-tab" onclick="filterMemory('public', this)"><span class="material-symbols-outlined" style="font-size:14px;">public</span>公开共享</button>
+          </div>
+          <div class="search-wrapper">
+            <span class="material-symbols-outlined search-icon">search</span>
+            <input type="text" class="search-input" id="memory-search" placeholder="检索记忆键、值、标签..." oninput="searchMemory()">
+          </div>
+        </div>
+
+        <div class="memory-table-container">
+          <table class="memory-table">
+            <thead>
+              <tr>
+                <th style="width: 60px;">ID</th>
+                <th style="width: 100px;">可见性</th>
+                <th style="width: 140px;">信息标签 (TAG)</th>
+                <th>记忆内容</th>
+                <th style="width: 120px;">来源</th>
+                <th style="width: 120px;">更新时间</th>
+              </tr>
+            </thead>
+            <tbody id="memory-tbody">
+              <tr data-vis="private">
+                <td>#M081</td>
+                <td><span class="visibility-badge vis-private"><span class="material-symbols-outlined" style="font-size:12px;">lock</span>Private</span></td>
+                <td><span class="tag">user_settings</span></td>
+                <td><div class="memory-content">用户习惯在晚上 10 点后将主屏幕亮度切换为 Ultra Dark 暗色模式。</div></td>
+                <td>Chat #12</td>
+                <td>14:20:12</td>
+              </tr>
+              <tr data-vis="workspace">
+                <td>#M080</td>
+                <td><span class="visibility-badge vis-workspace"><span class="material-symbols-outlined" style="font-size:12px;">group</span>Workspace</span></td>
+                <td><span class="tag">db_config</span></td>
+                <td><div class="memory-content">本地数据库的主路径位于 `database/aios.db`，且开发环境已将端口设定为 9502 / 9503。</div></td>
+                <td>System Init</td>
+                <td>12:00:45</td>
+              </tr>
+              <tr data-vis="public">
+                <td>#M079</td>
+                <td><span class="visibility-badge vis-public"><span class="material-symbols-outlined" style="font-size:12px;">public</span>Public</span></td>
+                <td><span class="tag">git_remote</span></td>
+                <td><div class="memory-content">AIOS 的官方同步远端为 GitHub (`realuckyang/AIOS`) 和 Gitee 镜像。</div></td>
+                <td>AGENTS.md</td>
+                <td>Yesterday</td>
+              </tr>
+              <tr data-vis="private">
+                <td>#M078</td>
+                <td><span class="visibility-badge vis-private"><span class="material-symbols-outlined" style="font-size:12px;">lock</span>Private</span></td>
+                <td><span class="tag">api_key_status</span></td>
+                <td><div class="memory-content">DeepSeek-Coder 密钥在并发限制大于 10 时会偶尔产生 503 报错，需要引入流式平滑限流。</div></td>
+                <td>System Log</td>
+                <td>Yesterday</td>
+              </tr>
+              <tr data-vis="workspace">
+                <td>#M077</td>
+                <td><span class="visibility-badge vis-workspace"><span class="material-symbols-outlined" style="font-size:12px;">group</span>Workspace</span></td>
+                <td><span class="tag">framework_style</span></td>
+                <td><div class="memory-content">前端开发禁止设计系统级的顶栏或侧边栏，每个模块在窄屏宽度下均应隐藏非核心列。</div></td>
+                <td>AGENTS.md</td>
+                <td>2 days ago</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- APP 4: MOCK FILE MANAGER -->
+      <section id="app-files" class="app-screen">
+        <div class="placeholder-screen">
+          <span class="material-symbols-outlined placeholder-icon">folder_open</span>
+          <h2 class="placeholder-title">FILE MANAGER // 本地文件管理器</h2>
+          <p class="placeholder-desc">
+            此应用用于管理本地沙盒中的文档与资源结构。AIOS 能够自动定位并在受限规则下读写本地代码树，并可通过 REST API 将文件注入会话中。
+          </p>
+          <button class="btn-action-sm" style="padding:6px 14px" onclick="alert('进入沙盒文件浏览器')">初始化磁盘挂载</button>
+        </div>
+      </section>
+
+      <!-- APP 5: SYSTEM TERMINAL -->
+      <section id="app-terminal" class="app-screen">
+        <div class="placeholder-screen">
+          <span class="material-symbols-outlined placeholder-icon">code</span>
+          <h2 class="placeholder-title">SYSTEM TERMINAL // 交互式终端</h2>
+          <p class="placeholder-desc">
+            直连 AIOS 沙盒的伪终端界面。您可在此直接观测子进程资源利用率（CPU/RAM），或在本地交互执行 shell 校验指令。
+          </p>
+          <button class="btn-action-sm" style="padding:6px 14px" onclick="alert('调起终端 Shell 服务')">启动沙盒 bash 实例</button>
+        </div>
+      </section>
+
+      <!-- APP 6: BROWSER -->
+      <section id="app-browser" class="app-screen">
+        <div class="placeholder-screen">
+          <span class="material-symbols-outlined placeholder-icon">public</span>
+          <h2 class="placeholder-title">AI WEB BROWSER // 网页浏览器</h2>
+          <p class="placeholder-desc">
+            以 Web Automation / browser-use 驱动的代理网页访问工作站，供 Agent 自动阅读外部资料或抓取实时新闻快讯。
+          </p>
+          <button class="btn-action-sm" style="padding:6px 14px" onclick="alert('加载 chromium 容器页面')">载入 Chromium 镜像页面</button>
+        </div>
+      </section>
+
+      <!-- APP 7: AUDIO ANALYSIS -->
+      <section id="app-audio" class="app-screen">
+        <div class="placeholder-screen">
+          <span class="material-symbols-outlined placeholder-icon">volume_up</span>
+          <h2 class="placeholder-title">AUDIO RADAR // 音频监听雷达</h2>
+          <p class="placeholder-desc">
+            本地语音实时转写与音轨分析应用，能够把系统输出和外部麦克风的对话切分为结构化输入，自动投递给后台 Agent 决策。
+          </p>
+          <button class="btn-action-sm" style="padding:6px 14px" onclick="alert('启动本地麦克风监听')">挂载音频设备 API</button>
+        </div>
+      </section>
+
+      <!-- APP 8: SYSTEM SETTINGS -->
+      <section id="app-settings" class="app-screen settings-layout">
+        <!-- Settings Inner navigation -->
+        <nav class="settings-nav">
+          <div class="settings-nav-item active" data-tab="tab-model">
+            <span class="material-symbols-outlined" style="font-size:16px;">dns</span> 模型配置
+          </div>
+          <div class="settings-nav-item" data-tab="tab-sandbox">
+            <span class="material-symbols-outlined" style="font-size:16px;">gavel</span> 权限与沙盒
+          </div>
+          <div class="settings-nav-item" data-tab="tab-resource">
+            <span class="material-symbols-outlined" style="font-size:16px;">monitoring</span> 系统资源
+          </div>
+        </nav>
+
+        <!-- Settings Core Panels -->
+        <div class="settings-content">
+          
+          <!-- TAB 1: MODEL CONFIG -->
+          <div id="tab-model" class="tab-panel-section">
+            <div class="settings-section">
+              <h3 class="settings-section-title">模型引擎配置</h3>
+              
+              <div class="form-group">
+                <label class="form-label">默认 Provider (供应商)</label>
+                <select class="form-control-input" style="height:38px;">
+                  <option>gemini</option>
+                  <option>deepseek</option>
+                  <option>openai</option>
+                  <option>kimi</option>
+                </select>
+                <span class="form-desc">系统调用后台任务和长轮次 Agent 时默认采用此模型引擎。</span>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">API 接入点 (ENDPOINT)</label>
+                <input type="text" class="form-control-input" value="https://api.google.com/gemini/v1">
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">API Key (密钥授权)</label>
+                <input type="password" class="form-control-input" value="••••••••••••••••••••••••••••••••••••">
+                <span class="form-desc">密钥保存在本地加密数据库中，不会在前端明文暴露。</span>
+              </div>
+            </div>
+
+            <div class="settings-section">
+              <h3 class="settings-section-title">AI 执行循环参数</h3>
+              <div class="switch-group">
+                <div class="switch-label-wrapper">
+                  <div class="switch-title">开启 Tool Loop 限制</div>
+                  <div class="switch-desc">单次任务最大循环轮数，防止模型工具调用死循环。</div>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" checked>
+                  <span class="slider"></span>
+                </label>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">最大迭代轮数 (Max Rounds)</label>
+                <input type="number" class="form-control-input" value="50">
+              </div>
+            </div>
+
+            <button class="btn-primary" onclick="alert('配置保存成功，SQLite 已同步。')">保存系统参数</button>
+          </div>
+
+          <!-- TAB 2: SANDBOX & PERMISSIONS -->
+          <div id="tab-sandbox" class="tab-panel-section" style="display: none;">
+            <div class="settings-section">
+              <h3 class="settings-section-title">本地沙盒策略</h3>
+              
+              <div class="switch-group">
+                <div class="switch-label-wrapper">
+                  <div class="switch-title">沙盒网络限制</div>
+                  <div class="switch-desc">拦截 Shell 工具发起的外部不安全 curl / wget 流量。</div>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" checked>
+                  <span class="slider"></span>
+                </label>
+              </div>
+
+              <div class="switch-group">
+                <div class="switch-label-wrapper">
+                  <div class="switch-title">文件修改双重确认</div>
+                  <div class="switch-desc">当 AI 试图改写核心系统服务代码时，在前台弹出二次确认。</div>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox">
+                  <span class="slider"></span>
+                </label>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">命令执行白名单 (Regex)</label>
+                <input type="text" class="form-control-input" value="^(npm|git|node|cp|mkdir|rm -rf ui/dist).*">
+                <span class="form-desc">仅允许 Shell 调用的高危操作前缀，防止恶意命令注入。</span>
+              </div>
+            </div>
+            <button class="btn-primary" onclick="alert('权限规则已更新并载入安全中间件。')">应用权限控制</button>
+          </div>
+
+          <!-- TAB 3: SYSTEM RESOURCE -->
+          <div id="tab-resource" class="tab-panel-section" style="display: none;">
+            <div class="settings-section">
+              <h3 class="settings-section-title">资源实时状态</h3>
+              
+              <div class="resource-grid">
+                <div class="resource-card">
+                  <div class="resource-title">
+                    <span>CPU 沙盒占用率</span>
+                    <span style="font-family:var(--font-mono); color:var(--accent);">42%</span>
+                  </div>
+                  <div class="resource-bar-wrapper">
+                    <div class="resource-bar" style="width: 42%;"></div>
+                  </div>
+                </div>
+
+                <div class="resource-card">
+                  <div class="resource-title">
+                    <span>内存占用 (RAM)</span>
+                    <span style="font-family:var(--font-mono); color:var(--warning);">7.2 GB / 16 GB</span>
+                  </div>
+                  <div class="resource-bar-wrapper">
+                    <div class="resource-bar ram" style="width: 45%;"></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">本地数据库大小 (`database/aios.db`)</label>
+                <input type="text" class="form-control-input" value="12.4 MB (SQLite 3.45.0)" readonly>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">磁盘可用空间</label>
+                <input type="text" class="form-control-input" value="184.2 GB / 512 GB (SSD)" readonly>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+    </main>
+
+  </div>
+
+  <!-- Interactive JavaScript Logic -->
+  <script>
+    // App Switcher Navigation Logic (Desktop)
+    const switcherButtons = document.querySelectorAll('.switcher-btn');
+    const appScreens = document.querySelectorAll('.app-screen');
+    const mobileTitle = document.getElementById('mobile-app-title');
+
+    switcherButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        // Toggle Active Button
+        switcherButtons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        const targetId = btn.getAttribute('data-target');
+        const appLabel = btn.querySelector('.btn-label').innerText;
+        
+        // Sync active screen
+        switchScreen(targetId, appLabel);
+
+        // Sync to Mobile drawer buttons state
+        const drawerButtons = document.querySelectorAll('.drawer-app-btn');
+        drawerButtons.forEach(db => {
+          if (db.getAttribute('data-target') === targetId) {
+            db.classList.add('active');
+          } else {
+            db.classList.remove('active');
+          }
+        });
+      });
+    });
+
+    // Helper to switch active screen viewports
+    function switchScreen(targetId, appLabel) {
+      appScreens.forEach(screen => {
+        screen.classList.remove('active');
+        if (screen.id === targetId) {
+          screen.classList.add('active');
+        }
+      });
+      // Update Mobile top bar title
+      mobileTitle.innerText = `AIOS // ${appLabel}`;
+    }
+
+    // Mobile Navigation Drawer Toggle
+    const mobileDrawer = document.getElementById('mobile-drawer');
+    function toggleDrawer(open) {
+      if (open) {
+        mobileDrawer.classList.add('open');
+      } else {
+        mobileDrawer.classList.remove('open');
+      }
+    }
+
+    // Switch apps from mobile drawer list
+    function switchMobileApp(targetId, appLabel, buttonEl) {
+      // Toggle drawer buttons state
+      document.querySelectorAll('.drawer-app-btn').forEach(btn => btn.classList.remove('active'));
+      buttonEl.classList.add('active');
+
+      // Switch active viewport
+      switchScreen(targetId, appLabel);
+
+      // Sync back to Desktop switcher buttons state
+      switcherButtons.forEach(btn => {
+        if (btn.getAttribute('data-target') === targetId) {
+          btn.classList.add('active');
+          // Scroll the desktop switcher apps wrapper to ensure visibility if overflowed
+          btn.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+
+      // Collapse drawer overlay
+      toggleDrawer(false);
+    }
+
+    // Toggle Collapsible elements inside Chat app
+    function toggleTrace(header) {
+      const content = header.nextElementSibling;
+      const arrow = header.querySelector('span.material-symbols-outlined');
+      if (content.style.display === 'block') {
+        content.style.display = 'none';
+        arrow.textContent = 'keyboard_arrow_right';
+      } else {
+        content.style.display = 'block';
+        arrow.textContent = 'keyboard_arrow_down';
+      }
+    }
+
+    function toggleConsole(header) {
+      const content = header.nextElementSibling;
+      const arrow = header.querySelector('span.material-symbols-outlined');
+      if (content.style.display === 'block') {
+        content.style.display = 'none';
+        arrow.classList.remove('open');
+      } else {
+        content.style.display = 'block';
+        arrow.classList.add('open');
+      }
+    }
+
+    // Interactive Chat Simulation
+    function handleChatSubmit(event) {
+      if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        sendChatMessage();
+      }
+    }
+
+    function sendChatMessage() {
+      const inputBox = document.getElementById('chat-input-box');
+      const text = inputBox.value.trim();
+      if (!text) return;
+
+      const history = document.getElementById('chat-history-log');
+
+      // Append User Message
+      const userMsg = document.createElement('div');
+      userMsg.className = 'msg-block user';
+      const time = new Date().toTimeString().split(' ')[0];
+      userMsg.innerHTML = `
+        <div class="msg-meta">
+          <span class="role-usr">usr@aios</span>
+          <span>${time}</span>
+        </div>
+        <div class="msg-content">${text}</div>
+      `;
+      history.appendChild(userMsg);
+      inputBox.value = '';
+      history.scrollTop = history.scrollHeight;
+
+      // Simulate Assistant Reply + shell execution
+      setTimeout(() => {
+        const assistantMsg = document.createElement('div');
+        assistantMsg.className = 'msg-block assistant';
+        assistantMsg.innerHTML = `
+          <div class="msg-meta">
+            <span class="role-agt">agent@aios</span>
+            <span>${new Date().toTimeString().split(' ')[0]}</span>
+          </div>
+          <div class="msg-content">
+            <div class="thought-trace">
+              <div class="thought-header" onclick="toggleTrace(this)">
+                <span class="material-symbols-outlined" style="font-size:14px;">keyboard_arrow_right</span>
+                <span>思考逻辑 (Thought Process)</span>
+              </div>
+              <div class="thought-content" style="display:block">
+                分析输入命令: "${text}"。<br>
+                1. 使用 shell 确认系统环境并运行调试。<br>
+                2. 返回指令执行的日志。
+              </div>
+            </div>
+            <div class="console-trace">
+              <div class="console-trace-header" onclick="toggleConsole(this)">
+                <span>$ shell | echo "Running custom user script inside AIOS Sandbox..."</span>
+                <span class="material-symbols-outlined arrow open">keyboard_arrow_down</span>
+              </div>
+              <div class="console-trace-content" style="display:block">
+Running custom user script inside AIOS Sandbox...<br>
+Completed successfully. Exit Code: 0.
+              </div>
+            </div>
+            您的命令已在主服务沙盒环境下顺利执行完毕。
+          </div>
+        `;
+        history.appendChild(assistantMsg);
+        history.scrollTop = history.scrollHeight;
+      }, 1000);
+    }
+
+    // Switch between chat sessions in sidebars
+    function switchSession(item, title) {
+      document.querySelectorAll('#chat-sessions .session-item').forEach(i => i.classList.remove('active'));
+      item.classList.add('active');
+      document.getElementById('current-chat-title').innerText = title;
+    }
+
+    // Switch tasks on sidebar
+    function switchTask(item, taskName) {
+      document.querySelectorAll('.task-card').forEach(c => c.classList.remove('active'));
+      item.classList.add('active');
+
+      const titleNode = document.getElementById('active-task-title');
+      const idNode = document.getElementById('active-task-id');
+      const logBody = document.getElementById('task-terminal-logs');
+      const dot = document.getElementById('terminal-dot-indicator');
+      const abortBtn = document.getElementById('abort-btn');
+
+      titleNode.innerText = taskName;
+
+      if (taskName.includes('Tomato') || taskName.includes('Tomato')) {
+        idNode.innerText = '#1088';
+        document.getElementById('active-task-badge').className = 'badge badge-running';
+        document.getElementById('active-task-badge').innerText = 'Running';
+        dot.style.backgroundColor = 'var(--success)';
+        abortBtn.style.display = 'flex';
+        logBody.innerHTML = `
+          <div class="terminal-line cmd">usr@aios:~$ vite build --config ui/vite.config.js ui</div>
+          <div class="terminal-line">vite v7.3.1 building for production...</div>
+          <div class="terminal-line">transforming (24) ui/src/main.js</div>
+          <div class="terminal-line">✓ 56 modules transformed.</div>
+          <div class="terminal-line success">dist/index.html                     0.45 kB</div>
+          <div class="terminal-line success">dist/assets/index-D78s92.js         385.20 kB</div>
+          <div class="terminal-line success">dist/assets/index-B1x2n4.css         42.50 kB</div>
+          <div class="terminal-line">✓ built in 1.48s</div>
+          <div class="terminal-line" style="margin-top: 10px; color:#ffd600;">[STATUS] Task daemon listening to local file triggers...</div>
+        `;
+      } else if (taskName.includes('Database')) {
+        idNode.innerText = '#1087';
+        document.getElementById('active-task-badge').className = 'badge badge-done';
+        document.getElementById('active-task-badge').innerText = 'Done';
+        dot.style.backgroundColor = 'var(--text-muted)';
+        abortBtn.style.display = 'none';
+        logBody.innerHTML = `
+          <div class="terminal-line cmd">usr@aios:~$ sqlite3 database/aios.db "VACUUM; ANALYZE;"</div>
+          <div class="terminal-line">Re-indexing database columns for chat history...</div>
+          <div class="terminal-line success">VACUUM complete. Database shrunk by 4.2MB.</div>
+          <div class="terminal-line success">ANALYZE complete. Query plans optimized for model invocation.</div>
+        `;
+      } else {
+        idNode.innerText = '#1086';
+        document.getElementById('active-task-badge').className = 'badge badge-aborted';
+        document.getElementById('active-task-badge').innerText = 'Aborted';
+        dot.style.backgroundColor = 'var(--danger)';
+        abortBtn.style.display = 'none';
+        logBody.innerHTML = `
+          <div class="terminal-line cmd">usr@aios:~$ git push origin main && git push gitee main</div>
+          <div class="terminal-line">Pushing to remote repository: GitHub...</div>
+          <div class="terminal-line error">Process received SIGINT (User abort request). Clean exit.</div>
+        `;
+      }
+    }
+
+    function abortActiveTask() {
+      if (confirm('是否中断当前构建任务？这会强行结束 node 子进程。')) {
+        const badge = document.getElementById('active-task-badge');
+        badge.className = 'badge badge-aborted';
+        badge.innerText = 'Aborted';
+        document.getElementById('terminal-dot-indicator').style.backgroundColor = 'var(--danger)';
+        document.getElementById('abort-btn').style.display = 'none';
+        document.getElementById('task-terminal-logs').innerHTML += `
+          <div class="terminal-line error" style="margin-top: 10px;">[PROCESS TERMINATED BY USER] Exit Code: 130</div>
+        `;
+      }
+    }
+
+    // Filter memory table
+    function filterMemory(type, button) {
+      document.querySelectorAll('.memory-tab').forEach(t => t.classList.remove('active'));
+      button.classList.add('active');
+
+      const rows = document.querySelectorAll('#memory-tbody tr');
+      rows.forEach(row => {
+        if (type === 'all') {
+          row.style.display = 'table-row';
+        } else {
+          row.getAttribute('data-vis') === type ? row.style.display = 'table-row' : row.style.display = 'none';
+        }
+      });
+    }
+
+    // Search memories
+    function searchMemory() {
+      const query = document.getElementById('memory-search').value.toLowerCase();
+      const rows = document.querySelectorAll('#memory-tbody tr');
+      rows.forEach(row => {
+        const text = row.innerText.toLowerCase();
+        row.style.display = text.includes(query) ? 'table-row' : 'none';
+      });
+    }
+
+    // Settings nav switching
+    const settingsNavItems = document.querySelectorAll('.settings-nav-item');
+    const tabPanels = document.querySelectorAll('.tab-panel-section');
+
+    settingsNavItems.forEach(item => {
+      item.addEventListener('click', () => {
+        settingsNavItems.forEach(i => i.classList.remove('active'));
+        item.classList.add('active');
+
+        const targetTab = item.getAttribute('data-tab');
+        tabPanels.forEach(panel => {
+          if (panel.id === targetTab) {
+            panel.style.display = 'block';
+          } else {
+            panel.style.display = 'none';
+          }
+        });
+      });
+    });
+
+    // Add session simulator
+    function addNewChat() {
+      const title = prompt('请输入新会话主题名称:');
+      if (!title) return;
+      const list = document.getElementById('chat-sessions');
+      const item = document.createElement('div');
+      item.className = 'session-item active';
+      item.onclick = function() { switchSession(this, title); };
+      item.innerHTML = `
+        <div class="session-title">${title}</div>
+        <div class="session-meta">
+          <span>gemini-2.5</span>
+          <span>Just now</span>
+        </div>
+      `;
+      document.querySelectorAll('#chat-sessions .session-item').forEach(i => i.classList.remove('active'));
+      list.insertBefore(item, list.firstChild);
+      switchSession(item, title);
+    }
+  </script>
+</body>
+</html>

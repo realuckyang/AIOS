@@ -1,0 +1,23 @@
+{
+  "fortune_title": "I Ching Reading",
+  "fortune_subtitle": "JU YI GUA · A sincere mind sees clearly",
+  "fortune_input_placeholder": "Write your question here…",
+  "fortune_divine": "Cast",
+  "fortune_shaking": "Casting…",
+  "fortune_reading": "The diviner is reading…",
+  "fortune_empty_prompt": "Write your question first, then cast.",
+  "fortune_empty_history": "No history yet",
+  "fortune_history": "History",
+  "fortune_good": "Do",
+  "fortune_bad": "Avoid",
+  "fortune_coin_back": "Tail",
+  "fortune_coin_char": "Head",
+  "fortune_yao_top": "Top",
+  "fortune_yao_five": "5th",
+  "fortune_yao_four": "4th",
+  "fortune_yao_three": "3rd",
+  "fortune_yao_two": "2nd",
+  "fortune_yao_one": "1st",
+  "fortune_disclaimer_1": "Ancient hexagrams in modern light, for entertainment only",
+  "fortune_disclaimer_2": "Do your part · Trust the heavens"
+}

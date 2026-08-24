@@ -1,0 +1,18 @@
+{
+  "gh_title": "GitHub 热榜",
+  "gh_back": "返回",
+  "gh_history": "已分析",
+  "gh_history_empty": "还没有分析过的项目",
+  "gh_loading": "加载中…",
+  "gh_failed": "加载失败,稍后重试",
+  "gh_all_languages": "全部语言",
+  "gh_weekly": "本周",
+  "gh_monthly": "本月",
+  "gh_digest": "总览",
+  "gh_digest_title": "本周热榜总览",
+  "gh_digest_desc": "AI 阅读全部仓库后给出主题与代表项目的中文总结",
+  "gh_digesting": "总览生成中…",
+  "gh_analyze": "深读",
+  "gh_analyzing_details": "AI 正在阅读 README 与关键文件…",
+  "gh_analyzed": "已分析"
+}

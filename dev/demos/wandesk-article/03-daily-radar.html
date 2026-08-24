@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Wandesk · 每日新品速递</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 100%; height: 100%; }
+  body { font-family: 'Barlow', system-ui, -apple-system, 'PingFang SC', sans-serif; overflow: hidden;
+    background: #1c1c1e; display: flex; align-items: center; justify-content: center; }
+  .screen { position: relative; width: 1600px; height: 900px; overflow: hidden; flex: none; transform-origin: center;
+    background: linear-gradient(to top, #fff1eb 0%, #ace0f9 100%); }
+  /* 图标 */
+  .desktop-icons { position: absolute; top: 24px; left: 24px; bottom: 24px; z-index: 1; display: grid;
+    grid-template-columns: repeat(auto-fill, 80px); grid-template-rows: repeat(auto-fill, 90px);
+    grid-auto-flow: column; gap: 6px 16px; align-content: start; }
+  .dicon { width: 80px; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px 4px; }
+  .dicon .g { font-size: 26px; line-height: 1; transform: translateY(-2px); }
+  .dicon .l { font-size: 11px; font-weight: 600; color: #222; text-align: center; line-height: 1.15; max-width: 72px; text-shadow: 0 1px 4px rgba(255,255,255,0.9); }
+  /* 窗口 */
+  .win { position: absolute; overflow: hidden; background: #f7f4ef; border: 1px solid rgba(255,255,255,0.5);
+    border-radius: 14px; box-shadow: 0 22px 70px rgba(0,0,0,0.28); }
+  .tbar { height: 40px; display: flex; align-items: center; gap: 8px; padding: 0 12px;
+    border-bottom: 1px solid rgba(0,0,0,0.06); background: rgba(247,244,239,0.92); }
+  .tbar .ic { font-size: 15px; } .tbar .tt { flex: 1; font-size: 12.5px; font-weight: 600; color: #2a1f13; }
+  .ctl { width: 14px; height: 14px; border-radius: 50%; } .ctl.min{background:#f6c15f;}.ctl.max{background:#67c86f;}.ctl.cls{background:#ef6a5d;}
+  /* 任务栏 */
+  .taskbar { position: absolute; left: 0; right: 0; bottom: 0; z-index: 250; height: 44px; display: flex; align-items: center;
+    gap: 8px; padding: 0 8px; border-top: 1px solid rgba(255,255,255,0.6); background: rgba(255,255,255,0.56); backdrop-filter: blur(24px); }
+  .launch { width: 32px; height: 32px; border-radius: 12px; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.05); color: #222; }
+  .launch svg { width: 17px; height: 17px; }
+  .tb-sep { width: 1px; height: 22px; background: rgba(0,0,0,0.07); margin: 0 6px; }
+  .tb-win { height: 32px; min-width: 88px; display: flex; align-items: center; gap: 6px; padding: 0 9px; border-radius: 7px; border: 1px solid transparent; font-size: 12px; font-weight: 500; color: #222; }
+  .tb-win.active { background: rgba(0,0,0,0.06); border-color: rgba(0,0,0,0.12); }
+  .tb-win .i { font-size: 15px; }
+  .clock { margin-left: auto; width: 84px; text-align: right; padding-right: 6px; }
+  .clock .t { font-size: 13px; font-weight: 600; color: #222; } .clock .d { font-size: 10px; color: rgba(0,0,0,0.38); }
+
+  /* ── 新品速递 app ── */
+  .win-radar { top: 70px; left: 268px; width: 1064px; height: 760px; }
+  .rd { display: flex; height: calc(100% - 40px); background: #f4f1ea; }
+  .rd-rail { width: 200px; flex: none; border-right: 1px solid rgba(0,0,0,0.07); padding: 18px 14px; background: #efe9dd; }
+  .rd-rail .hd { font-size: 11px; font-weight: 700; letter-spacing: .08em; color: #a0926f; margin: 0 8px 10px; }
+  .rd-grp { display: flex; align-items: center; gap: 9px; padding: 9px 12px; border-radius: 9px; font-size: 13.5px; color: #4a3f2a; font-weight: 500; }
+  .rd-grp.on { background: #fff; box-shadow: 0 2px 8px rgba(80,60,30,0.07); font-weight: 700; }
+  .rd-grp .n { margin-left: auto; font-size: 11px; color: #b3a890; }
+  .rd-main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .rd-top { display: flex; align-items: center; gap: 12px; padding: 16px 22px; border-bottom: 1px solid rgba(0,0,0,0.06); }
+  .rd-top h2 { font-size: 19px; color: #2a1f13; font-weight: 800; }
+  .rd-top .date { font-size: 13px; color: #a0926f; font-weight: 600; }
+  .rd-top .sp { flex: 1; }
+  .pill { font-size: 12px; font-weight: 600; padding: 6px 12px; border-radius: 16px; border: 1px solid rgba(0,0,0,0.1); color: #5a4a30; background: #fff; }
+  .pill.on { background: #2a1f13; color: #fff; border-color: #2a1f13; }
+  .rd-list { flex: 1; overflow: hidden; padding: 14px 22px; display: flex; flex-direction: column; gap: 12px; }
+  .card { background: #fff; border: 1px solid rgba(0,0,0,0.07); border-radius: 14px; padding: 14px 16px; box-shadow: 0 2px 10px rgba(80,60,30,0.05); }
+  .card .row1 { display: flex; align-items: center; gap: 12px; }
+  .logo { width: 42px; height: 42px; border-radius: 11px; flex: none; display: flex; align-items: center; justify-content: center; font-size: 22px; color: #fff; }
+  .card .nm { font-size: 15.5px; font-weight: 800; color: #2a1f13; }
+  .card .desc { font-size: 13px; color: #6a5d44; margin-top: 2px; }
+  .card .acts { margin-left: auto; display: flex; gap: 8px; }
+  .btn { font-size: 12.5px; font-weight: 600; padding: 7px 13px; border-radius: 9px; }
+  .btn.research { background: #2a1f13; color: #fff; }
+  .btn.fav { background: #fbeede; color: #b07a2a; border: 1px solid #f0d8b0; }
+  .tags { display: flex; gap: 7px; margin-top: 11px; flex-wrap: wrap; }
+  .tag { font-size: 11px; font-weight: 600; color: #7a6a48; background: #f1ece1; border-radius: 6px; padding: 3px 9px; }
+  .tag.up { color: #2f7d4f; background: #e6f4ea; }
+  /* 深度研究展开 */
+  .research-box { margin-top: 13px; border-top: 1px dashed rgba(0,0,0,0.1); padding-top: 12px; display: flex; gap: 18px; }
+  .rb-col { flex: 1; }
+  .rb-col .k { font-size: 11px; font-weight: 700; color: #a0926f; letter-spacing: .05em; margin-bottom: 6px; }
+  .rb-col .v { font-size: 12.5px; color: #4a3f2a; line-height: 1.6; }
+  .spark { display: flex; align-items: flex-end; gap: 3px; height: 38px; }
+  .spark i { width: 9px; border-radius: 2px 2px 0 0; background: linear-gradient(180deg,#7fb0ff,#bcd6ff); }
+</style>
+</head>
+<body>
+  <div class="screen">
+    <div class="desktop-icons">
+      <div class="dicon"><div class="g">💬</div><div class="l">聊天</div></div>
+      <div class="dicon"><div class="g">⚡</div><div class="l">任务</div></div>
+      <div class="dicon"><div class="g">💭</div><div class="l">记忆</div></div>
+      <div class="dicon"><div class="g">🗂</div><div class="l">文件</div></div>
+      <div class="dicon"><div class="g">📓</div><div class="l">笔记本</div></div>
+      <div class="dicon"><div class="g">💰</div><div class="l">记账</div></div>
+      <div class="dicon"><div class="g">💡</div><div class="l">开源雷达</div></div>
+      <div class="dicon"><div class="g">🪄</div><div class="l">应用工坊</div></div>
+      <div class="dicon"><div class="g">📌</div><div class="l">便签板</div></div>
+      <div class="dicon"><div class="g">📡</div><div class="l">新品速递</div></div>
+      <div class="dicon"><div class="g">🎴</div><div class="l">Demo 工坊</div></div>
+      <div class="dicon"><div class="g">🎬</div><div class="l">视频工坊</div></div>
+      <div class="dicon"><div class="g">✍️</div><div class="l">写作台</div></div>
+    </div>
+
+    <div class="win win-radar">
+      <div class="tbar"><span class="ic">📡</span><span class="tt">新品速递</span><span class="ctl min"></span><span class="ctl max"></span><span class="ctl cls"></span></div>
+      <div class="rd">
+        <div class="rd-rail">
+          <div class="hd">收藏分组</div>
+          <div class="rd-grp on">⭐ 全部速递<span class="n">28</span></div>
+          <div class="rd-grp">🤖 AI 工具<span class="n">12</span></div>
+          <div class="rd-grp">🎨 设计<span class="n">6</span></div>
+          <div class="rd-grp">🛠 开发工具<span class="n">10</span></div>
+          <div class="rd-grp">📈 待深研<span class="n">3</span></div>
+        </div>
+        <div class="rd-main">
+          <div class="rd-top">
+            <h2>今日速递</h2><span class="date">5 月 30 日 · 已自动翻译</span><span class="sp"></span>
+            <span class="pill on">中文</span><span class="pill">EN</span><span class="pill">↻ 刷新</span>
+          </div>
+          <div class="rd-list">
+            <!-- 展开了深度研究的一条 -->
+            <div class="card">
+              <div class="row1">
+                <div class="logo" style="background:linear-gradient(135deg,#7c5cff,#a78bff)">◆</div>
+                <div><div class="nm">Lumora</div><div class="desc">把杂乱的网页书签自动整理成可检索的知识库,支持本地优先。</div></div>
+                <div class="acts"><span class="btn research">深度研究 ✓</span><span class="btn fav">已收藏</span></div>
+              </div>
+              <div class="tags"><span class="tag">AI 工具</span><span class="tag">知识管理</span><span class="tag up">流量 ↑ 3.2×/周</span></div>
+              <div class="research-box">
+                <div class="rb-col"><div class="k">流量趋势(SimilarWeb)</div>
+                  <div class="spark"><i style="height:30%"></i><i style="height:38%"></i><i style="height:34%"></i><i style="height:52%"></i><i style="height:60%"></i><i style="height:78%"></i><i style="height:100%"></i></div>
+                </div>
+                <div class="rb-col"><div class="k">媒体报道</div><div class="v">TechCrunch、Ben's Bites 均有提及;主打"本地优先的 AI 书签"。</div></div>
+                <div class="rb-col"><div class="k">社区反馈</div><div class="v">HN 132 赞,争议点在隐私与同步;PH 当日第三。</div></div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="row1">
+                <div class="logo" style="background:linear-gradient(135deg,#ff7a59,#ffb27a)">▲</div>
+                <div><div class="nm">Pebble Notes</div><div class="desc">给团队用的极简会议纪要,自动生成待办并回填日历。</div></div>
+                <div class="acts"><span class="btn research">深度研究</span><span class="btn fav">收藏</span></div>
+              </div>
+              <div class="tags"><span class="tag">效率</span><span class="tag">团队协作</span><span class="tag up">流量 ↑ 1.8×/周</span></div>
+            </div>
+            <div class="card">
+              <div class="row1">
+                <div class="logo" style="background:linear-gradient(135deg,#2bb673,#7fd6a6)">●</div>
+                <div><div class="nm">Forge UI</div><div class="desc">描述一句话生成可导出的 React 组件,带设计令牌。</div></div>
+                <div class="acts"><span class="btn research">深度研究</span><span class="btn fav">收藏</span></div>
+              </div>
+              <div class="tags"><span class="tag">开发工具</span><span class="tag">前端</span><span class="tag">设计系统</span></div>
+            </div>
+            <div class="card">
+              <div class="row1">
+                <div class="logo" style="background:linear-gradient(135deg,#4a7bff,#8fb3ff)">✦</div>
+                <div><div class="nm">Driftboard</div><div class="desc">把灵感、链接、截图丢进同一块无限画布,AI 帮你聚类。</div></div>
+                <div class="acts"><span class="btn research">深度研究</span><span class="btn fav">收藏</span></div>
+              </div>
+              <div class="tags"><span class="tag">设计</span><span class="tag">白板</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="taskbar">
+      <div class="launch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></div>
+      <div class="tb-sep"></div>
+      <div class="tb-win active"><span class="i">📡</span>新品速递</div>
+      <div class="clock"><div class="t">09:12</div><div class="d">5/30</div></div>
+    </div>
+  </div>
+  <script>function fit(){var s=document.querySelector('.screen');s.style.transform='scale('+Math.min(innerWidth/1600,innerHeight/900)+')';}addEventListener('resize',fit);fit();</script>
+</body>
+</html>

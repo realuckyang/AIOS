@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="zh-CN"><head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>炒币机 · v1 单列消费风</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0b0f;--panel:#14171f;--panel2:#191d27;--line:#1f2330;--line2:#171a23;
+--text:#e9ebf2;--muted:#8a90a2;--faint:#565c6e;--gold:#f5b738;--bull:#2bd4a4;--bull-s:rgba(43,212,164,.13);
+--bear:#ff5470;--bear-s:rgba(255,84,112,.13);--ai:#8b93ff;--ai-s:rgba(139,147,255,.12);--mono:'JetBrains Mono',monospace}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:radial-gradient(900px 500px at 50% -10%,rgba(43,212,164,.07),transparent 60%),var(--bg);
+color:var(--text);font-family:Inter,system-ui,'PingFang SC',sans-serif;-webkit-font-smoothing:antialiased;font-feature-settings:'tnum' 1}
+.tag{position:fixed;top:14px;left:14px;font-family:var(--mono);font-size:11px;color:var(--ai);background:var(--ai-s);
+border:1px solid rgba(139,147,255,.3);padding:5px 11px;border-radius:20px;z-index:9}
+.wrap{max-width:480px;margin:0 auto;padding:54px 18px 40px}
+.topbar{display:flex;align-items:center;gap:10px;margin-bottom:26px}
+.logo{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;font-weight:800;color:#1a1500;
+background:linear-gradient(135deg,#ffe7a3,var(--gold) 60%,#c8920a)}
+.topbar b{font-size:15px}.topbar .live{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--bull);
+background:var(--bull-s);border:1px solid rgba(43,212,164,.3);padding:3px 9px;border-radius:14px;font-weight:700}
+.dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--bull);box-shadow:0 0 7px var(--bull);margin-right:5px}
+/* hero */
+.hero{text-align:center;padding:14px 0 6px}
+.hero .lbl{font-family:var(--mono);font-size:11px;letter-spacing:.16em;color:var(--faint);text-transform:uppercase}
+.hero .big{font-family:var(--mono);font-size:58px;font-weight:700;letter-spacing:-.02em;margin-top:8px;line-height:1;
+text-shadow:0 0 40px rgba(43,212,164,.25)}
+.hero .pnl{margin-top:12px;display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:15px;font-weight:700;color:var(--bull)}
+.hero .pnl .abs{color:var(--muted);font-weight:500;font-size:13px}
+.chart{margin:18px 0 6px;position:relative}
+.chart svg{width:100%;height:150px;display:block}
+.chips{display:flex;justify-content:center;gap:6px;margin:14px 0 24px}
+.chip{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--faint);padding:6px 16px;border-radius:20px;
+border:1px solid var(--line);background:var(--panel);cursor:pointer}
+.chip.on{color:var(--gold);background:rgba(245,183,56,.14);border-color:rgba(245,183,56,.3)}
+/* stats */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:22px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px}
+.stat .n{font-family:var(--mono);font-size:21px;font-weight:700}
+.stat .l{font-size:11px;color:var(--faint);margin-top:3px}
+/* section */
+.sec-t{font-size:13px;font-weight:700;letter-spacing:.02em;margin:0 4px 12px;color:var(--text)}
+/* ai latest */
+.ai-card{background:radial-gradient(300px 140px at 100% 0,var(--ai-s),transparent 70%),var(--panel);
+border:1px solid rgba(139,147,255,.25);border-radius:18px;padding:18px;margin-bottom:26px}
+.ai-card .head{display:flex;align-items:center;gap:9px;margin-bottom:12px}
+.ai-badge{width:30px;height:30px;border-radius:9px;background:var(--ai-s);border:1px solid rgba(139,147,255,.3);
+display:grid;place-items:center;font-size:15px}
+.ai-card .ttl{font-size:12px;color:var(--ai);font-family:var(--mono);font-weight:600}
+.ai-card .when{margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--faint)}
+.stance{display:inline-flex;align-items:center;gap:4px;font-family:var(--mono);font-size:11px;font-weight:700;
+padding:3px 9px;border-radius:6px;background:var(--bull-s);color:var(--bull)}
+.ai-card .headline{font-size:16px;font-weight:700;margin:12px 0 10px;line-height:1.4}
+.acts{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px}
+.act{font-family:var(--mono);font-size:12px;padding:4px 11px;border-radius:7px;background:var(--bull-s);color:var(--bull);font-weight:600}
+.ai-card p{font-size:13px;line-height:1.65;color:var(--muted)}
+/* lists */
+.row{display:flex;align-items:center;gap:12px;padding:14px 12px;border-radius:14px;background:var(--panel);
+border:1px solid var(--line);margin-bottom:9px}
+.coin{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;font-family:var(--mono);font-weight:700;
+background:var(--panel2);border:1px solid var(--line);font-size:13px}
+.row .nm{font-weight:600}.row .sub{font-size:11px;color:var(--faint);font-family:var(--mono);margin-top:2px}
+.row .rt{margin-left:auto;text-align:right}
+.row .px{font-family:var(--mono);font-weight:600}.row .ch{font-family:var(--mono);font-size:12px;font-weight:700;margin-top:2px}
+.up{color:var(--bull)}.down{color:var(--bear)}
+.side{font-family:var(--mono);font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px}
+.side.l{background:var(--bull-s);color:var(--bull)}.side.s{background:var(--bear-s);color:var(--bear)}
+</style></head>
+<body>
+<div class="tag">v1 · 单列消费风</div>
+<div class="wrap">
+  <div class="topbar"><div class="logo">₿</div><b>炒币机</b><span class="live"><span class="dot"></span>运行中</span></div>
+
+  <div class="hero">
+    <div class="lbl">账户净值</div>
+    <div class="big">$12,480</div>
+    <div class="pnl">▲ +12.41% <span class="abs">+$1,378 · 今日 +$214</span></div>
+  </div>
+  <div class="chart">
+    <svg viewBox="0 0 460 150" preserveAspectRatio="none">
+      <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2bd4a4" stop-opacity=".32"/><stop offset="1" stop-color="#2bd4a4" stop-opacity="0"/></linearGradient></defs>
+      <path d="M0,120 L40,110 L80,116 L120,92 L160,100 L200,74 L240,80 L280,52 L320,60 L360,38 L400,30 L460,14 L460,150 L0,150 Z" fill="url(#g)"/>
+      <path d="M0,120 L40,110 L80,116 L120,92 L160,100 L200,74 L240,80 L280,52 L320,60 L360,38 L400,30 L460,14" fill="none" stroke="#2bd4a4" stroke-width="2.6" stroke-linejoin="round"/>
+      <circle cx="460" cy="14" r="4" fill="#2bd4a4"/>
+    </svg>
+  </div>
+  <div class="chips"><span class="chip">日</span><span class="chip">周</span><span class="chip on">月</span><span class="chip">全部</span></div>
+
+  <div class="stats">
+    <div class="stat"><div class="n">3</div><div class="l">持仓</div></div>
+    <div class="stat"><div class="n">18</div><div class="l">今日决策</div></div>
+    <div class="stat"><div class="n">300s</div><div class="l">采样</div></div>
+  </div>
+
+  <div class="ai-card">
+    <div class="head"><div class="ai-badge">🤖</div><span class="ttl">AI 最新动作</span><span class="when">3 分前</span></div>
+    <span class="stance">▲ 看多</span>
+    <div class="headline">BTC 突破日线压力,加仓追势</div>
+    <div class="acts"><span class="act">买入 BTC-USDT 0.05 @ 64,210</span></div>
+    <p>1H 级别量价齐升,刚突破 64k 前高且 RSI 未超买,按目标在 64,210 追加多单,止损设 62,800。</p>
+  </div>
+
+  <div class="sec-t">持仓</div>
+  <div class="row"><div class="coin">B</div><div><div class="nm">BTC-USDT <span class="side l">多</span></div><div class="sub">0.18 · 3x · 开仓 63,820</div></div><div class="rt"><div class="px">$64,210</div><div class="ch up">+$312</div></div></div>
+  <div class="row"><div class="coin">S</div><div><div class="nm">SOL-USDT <span class="side l">多</span></div><div class="sub">14.0 · 2x · 开仓 168.2</div></div><div class="rt"><div class="px">$171.4</div><div class="ch up">+$86</div></div></div>
+  <div class="row"><div class="coin">E</div><div><div class="nm">ETH-USDT <span class="side s">空</span></div><div class="sub">1.2 · 2x · 开仓 3,180</div></div><div class="rt"><div class="px">$3,142</div><div class="ch down">−$41</div></div></div>
+
+  <div class="sec-t" style="margin-top:24px">实时行情</div>
+  <div class="row"><div class="coin">B</div><div><div class="nm">BTC</div><div class="sub">/USDT</div></div><div class="rt"><div class="px">$64,210</div><div class="ch up">▲ +2.7%</div></div></div>
+  <div class="row"><div class="coin">E</div><div><div class="nm">ETH</div><div class="sub">/USDT</div></div><div class="rt"><div class="px">$3,142</div><div class="ch down">▼ −0.6%</div></div></div>
+  <div class="row"><div class="coin">S</div><div><div class="nm">SOL</div><div class="sub">/USDT</div></div><div class="rt"><div class="px">$171.4</div><div class="ch up">▲ +4.1%</div></div></div>
+</div>
+</body></html>

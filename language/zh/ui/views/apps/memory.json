@@ -1,0 +1,37 @@
+{
+  "memory_tab_all": "全部",
+  "memory_tab_pinned": "置顶",
+  "memory_tab_enabled": "启用中",
+  "memory_tab_disabled": "已停用",
+
+  "memory_create": "新增记忆",
+  "memory_create_first": "写第一条记忆",
+  "memory_edit_title": "编辑记忆",
+  "memory_new_title": "新建记忆",
+  "memory_save": "保存",
+  "memory_saving": "保存中…",
+  "memory_delete": "删除",
+
+  "memory_field_title": "标题",
+  "memory_field_desc": "简介",
+  "memory_field_content": "正文",
+  "memory_title_placeholder": "起个能让自己一眼想起来的名字",
+  "memory_desc_placeholder": "一两句话说明这条记忆是干嘛的(可选)",
+  "memory_content_placeholder": "希望 AI 永远记住的事…",
+  "memory_desc_hint": "AI 看不到这一段, 只是给你做归类",
+  "memory_content_hint": "AI 会把启用的记忆拼进 system prompt",
+  "memory_char_unit": "字",
+
+  "memory_enabled_label": "启用",
+  "memory_disabled_label": "已停用",
+  "memory_pinned": "置顶",
+
+  "memory_empty_title": "空白记忆本",
+  "memory_empty_desc": "把希望 AI 一直记住的事写下来",
+  "memory_filter_empty": "这个分类下还没有内容",
+
+  "memory_delete_confirm_prefix": "删除「",
+  "memory_delete_confirm_suffix": "」?此操作不可撤销",
+
+  "common_cancel": "取消"
+}

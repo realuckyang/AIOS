@@ -1,6 +1,0 @@
-{
-  "guard": "bin/hooks/guard",
-  "tools": "etc/tools.json",
-  "requestBodyMaxBytes": 26214400,
-  "sseEventMaxBytes": 1048576
-}

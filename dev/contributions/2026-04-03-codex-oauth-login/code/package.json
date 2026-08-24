@@ -1,0 +1,33 @@
+{
+  "name": "aios",
+  "version": "1.0.0",
+  "description": "",
+  "type": "module",
+  "main": "server/index.js",
+  "scripts": {
+    "dev": "node server/index.js & node apps/index.js & vite --config ui/vite.config.js ui",
+    "build": "vite build --config ui/vite.config.js ui",
+    "start": "node server/index.js",
+    "start:apps": "node apps/index.js",
+    "docker": "docker compose -f doc/docker/docker-compose.yml up -d --build",
+    "docker:stop": "docker compose -f doc/docker/docker-compose.yml down"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@tailwindcss/vite": "^4.1.18",
+    "@vitejs/plugin-vue": "^6.0.4",
+    "@vueuse/core": "^14.2.1",
+    "better-sqlite3": "^12.6.2",
+    "dotenv": "^17.2.4",
+    "lucide-vue-next": "^0.576.0",
+    "marked": "^17.0.2",
+    "tailwindcss": "^4.1.18",
+    "topojson-client": "^3.1.0",
+    "vite": "^7.3.1",
+    "vue": "^3.5.28",
+    "vue-router": "^4.6.4",
+    "ws": "^8.19.0"
+  }
+}

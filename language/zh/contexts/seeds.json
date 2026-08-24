@@ -1,0 +1,13 @@
+{
+  "items": [
+    {
+      "title": "应用开发指导",
+      "description": "AIOS 应用结构、API 规则、数据库写法、前端放置、构建与 reload 约定",
+      "creator": "system",
+      "pinned": 0,
+      "enabled": 1,
+      "access": "full",
+      "contentFile": "app-creation-guide.md"
+    }
+  ]
+}

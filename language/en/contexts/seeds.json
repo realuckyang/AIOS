@@ -1,0 +1,13 @@
+{
+  "items": [
+    {
+      "title": "App Development Guide",
+      "description": "AIOS app structure, API rules, database layout, frontend placement, build, and reload conventions",
+      "creator": "system",
+      "pinned": 0,
+      "enabled": 1,
+      "access": "full",
+      "contentFile": "app-creation-guide.md"
+    }
+  ]
+}

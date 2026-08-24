@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Wandesk · 桌面全景</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Caveat:wght@500;700&display=swap" rel="stylesheet" />
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 100%; height: 100%; }
+  body { font-family: 'Barlow', system-ui, -apple-system, 'PingFang SC', sans-serif; overflow: hidden; background: #1c1c1e; display: flex; align-items: center; justify-content: center; }
+
+  /* ── 截图画布 ── */
+  .screen {
+    position: relative; width: 1600px; height: 900px; overflow: hidden; flex: none; transform-origin: center center;
+    /* 真实壁纸 wp-sea-mist-blue-bay */
+    background: linear-gradient(to top, #fff1eb 0%, #ace0f9 100%);
+  }
+
+  /* ── 桌面图标(真实:inset-6 网格,80×90 格子,列优先,gap 6/16)── */
+  .desktop-icons {
+    position: absolute; top: 24px; left: 24px; bottom: 24px; z-index: 1;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, 80px);
+    grid-template-rows: repeat(auto-fill, 90px);
+    grid-auto-flow: column;
+    gap: 6px 16px; align-content: start;
+  }
+  .dicon {
+    width: 80px; display: flex; flex-direction: column; align-items: center; gap: 6px;
+    padding: 8px 4px; border-radius: 10px;
+  }
+  .dicon .g { font-size: 26px; line-height: 1; transform: translateY(-2px); }
+  .dicon .l { font-size: 11px; font-weight: 600; color: #222; text-align: center; line-height: 1.15;
+    max-width: 72px; text-shadow: 0 1px 4px rgba(255,255,255,0.9); }
+
+  /* ── 窗口通用(真实:#f7f4ef / 圆角14 / 阴影 0 22px 70px / 标题栏40)── */
+  .win {
+    position: absolute; z-index: 5; overflow: hidden;
+    background: #f7f4ef; border: 1px solid rgba(255,255,255,0.5);
+    border-radius: 14px; box-shadow: 0 22px 70px rgba(0,0,0,0.28);
+  }
+  .tbar {
+    height: 40px; display: flex; align-items: center; gap: 8px; padding: 0 12px;
+    border-bottom: 1px solid rgba(0,0,0,0.06); background: rgba(247,244,239,0.92);
+  }
+  .tbar .ic { font-size: 15px; }
+  .tbar .tt { flex: 1; min-width: 0; font-size: 12.5px; font-weight: 600; color: #2a1f13;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ctl { width: 14px; height: 14px; border-radius: 50%; }
+  .ctl.min { background: #f6c15f; } .ctl.max { background: #67c86f; } .ctl.cls { background: #ef6a5d; }
+
+  /* 窗口1:聊天(对话造应用) */
+  .win-chat { top: 92px; left: 304px; width: 540px; height: 580px; }
+  .chat { height: calc(100% - 40px); display: flex; flex-direction: column; }
+  .msgs { flex: 1; overflow: hidden; padding: 20px 20px 8px; display: flex; flex-direction: column; gap: 13px; }
+  .b { max-width: 84%; padding: 11px 14px; border-radius: 14px; font-size: 13.5px; line-height: 1.6; }
+  .b.u { align-self: flex-end; background: #2a1f13; color: #fbf3e6; border-bottom-right-radius: 5px; }
+  .b.a { align-self: flex-start; background: #fff; border: 1px solid rgba(0,0,0,0.07); color: #2f2718;
+    border-bottom-left-radius: 5px; box-shadow: 0 2px 8px rgba(80,60,30,0.05); }
+  .tool { align-self: flex-start; max-width: 92%; font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+    font-size: 11.5px; color: #6a7b52; background: rgba(140,160,90,0.10);
+    border: 1px solid rgba(140,160,90,0.22); border-radius: 10px; padding: 8px 11px;
+    display: flex; gap: 8px; align-items: center; }
+  .tool .d { width: 7px; height: 7px; border-radius: 50%; background: #7e8d5a; flex: none; }
+  .composer { padding: 12px 16px 16px; }
+  .cbox { height: 46px; border-radius: 23px; background: #fff; border: 1px solid rgba(0,0,0,0.08);
+    display: flex; align-items: center; padding: 0 6px 0 18px; gap: 8px; box-shadow: 0 4px 14px rgba(80,60,30,0.06); }
+  .cbox .ph { flex: 1; font-size: 13.5px; color: #b3a890; }
+  .cbox .snd { width: 34px; height: 34px; border-radius: 50%; background: #2a1f13; color: #fff;
+    display: flex; align-items: center; justify-content: center; font-size: 16px; }
+
+  /* 窗口2:记账应用 —— 真实「存折」拟物 */
+  .win-app { top: 226px; left: 684px; width: 612px; height: 478px; z-index: 6; }
+  /* 深色桌面台面 */
+  .pb-bg { height: calc(100% - 40px); padding: 18px; display: flex; align-items: stretch; justify-content: center;
+    background-color: #1a1a1a;
+    background-image: repeating-linear-gradient(45deg, rgba(255,255,255,0.02) 0px, transparent 1px, transparent 10px); }
+  /* 存折本体 */
+  .pb { flex: 1; display: flex; border-radius: 10px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.6); }
+  /* 红色皮革封面书脊 */
+  .pb-cover { position: relative; width: 22px; flex: none; border-radius: 10px 0 0 10px;
+    background: linear-gradient(135deg, #a41b1b, #7d1010);
+    box-shadow: inset 4px 0 10px rgba(0,0,0,0.5), inset -2px 0 8px rgba(0,0,0,0.8); }
+  .pb-cover .stripe { position: absolute; top: 0; bottom: 0; left: 5px; width: 9px; opacity: .8;
+    background: linear-gradient(90deg, #111, #333, #111); box-shadow: inset 0 0 3px rgba(0,0,0,0.8); }
+  /* 纸页 */
+  .pb-pages { position: relative; flex: 1; border-radius: 0 10px 10px 0; padding: 16px 18px 10px 26px;
+    background-color: #f0f4f8;
+    background-image: repeating-linear-gradient(45deg, rgba(82,113,255,0.03) 0, rgba(82,113,255,0.03) 1px, transparent 1px, transparent 12px),
+                      repeating-linear-gradient(-45deg, rgba(82,113,255,0.03) 0, rgba(82,113,255,0.03) 1px, transparent 1px, transparent 12px);
+    box-shadow: inset 15px 0 25px rgba(0,0,0,0.15); }
+  .pb-pages .crease { position: absolute; top: 0; bottom: 0; left: 0; width: 24px; pointer-events: none;
+    background: linear-gradient(90deg, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.08) 40%, transparent 100%); }
+  /* 点阵打印头部 */
+  .pb-head { font-family: 'Courier New', Courier, monospace; color: #0b1c67; text-shadow: 0 0 1px rgba(11,28,103,0.4);
+    display: flex; align-items: flex-end; justify-content: space-between; gap: 14px; margin-bottom: 12px; }
+  .pb-month { font-size: 17px; font-weight: 700; letter-spacing: 0.12em; display: flex; align-items: center; gap: 10px; }
+  .pb-month .nav { color: #0b1c67; opacity: .55; }
+  .pb-sum { display: flex; gap: 18px; border: 2px dashed rgba(82,113,255,0.4); background: rgba(255,255,255,0.6);
+    border-radius: 4px; padding: 7px 14px; box-shadow: inset 0 0 10px rgba(0,0,0,0.02); }
+  .pb-sum .cell { display: flex; flex-direction: column; align-items: flex-end; }
+  .pb-sum .cell + .cell { border-left: 1px dashed rgba(82,113,255,0.3); padding-left: 16px; }
+  .pb-sum .k { font-size: 10px; color: #6b7280; }
+  .pb-sum .v { font-size: 14px; font-weight: 800; }
+  .pb-sum .v.in { color: #15803d; } .pb-sum .v.out { color: #b91c1c; }
+  .pb-sum .v.bal { color: #000; text-decoration: underline double; }
+  /* 流水表 */
+  .pb-tbl { width: 100%; border-collapse: collapse; font-family: 'Courier New', Courier, monospace; font-size: 12px; color: #1a2a40; }
+  .pb-tbl th { text-align: left; font-size: 10.5px; letter-spacing: .05em; color: #5271ff; font-weight: 700;
+    padding: 5px 6px; border-bottom: 1px solid rgba(82,113,255,0.4); }
+  .pb-tbl th.r, .pb-tbl td.r { text-align: right; font-variant-numeric: tabular-nums; }
+  .pb-tbl td { padding: 6px 6px; border-bottom: 1px dashed rgba(82,113,255,0.18); }
+  .pb-tbl tr:nth-child(even) td { background: rgba(82,113,255,0.045); }
+  .pb-tbl td.in { color: #15803d; } .pb-tbl td.out { color: #b91c1c; }
+  .pb-tbl td.bal { color: #0b1c67; font-weight: 700; }
+
+  /* ── 任务栏(底部全宽 bar)── */
+  .taskbar {
+    position: absolute; left: 0; right: 0; bottom: 0; z-index: 250; height: 44px;
+    display: flex; align-items: center; gap: 8px; padding: 0 8px;
+    border-top: 1px solid rgba(255,255,255,0.6); background: rgba(255,255,255,0.56);
+    backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+  }
+  .launch { width: 32px; height: 32px; border-radius: 12px; display: flex; align-items: center; justify-content: center;
+    background: rgba(0,0,0,0.05); color: #222; }
+  .launch svg { width: 17px; height: 17px; }
+  .tb-sep { width: 1px; height: 22px; background: rgba(0,0,0,0.07); margin: 0 6px; flex: none; }
+  .tb-win { height: 32px; min-width: 88px; display: flex; align-items: center; gap: 6px; padding: 0 9px;
+    border-radius: 7px; border: 1px solid transparent; font-size: 12px; font-weight: 500; color: #222; }
+  .tb-win.active { background: rgba(0,0,0,0.06); border-color: rgba(0,0,0,0.12); }
+  .tb-win .i { font-size: 15px; }
+  .clock { margin-left: auto; width: 84px; text-align: right; padding-right: 6px; }
+  .clock .t { font-size: 13px; font-weight: 600; color: #222; line-height: 1.25; }
+  .clock .d { font-size: 10px; color: rgba(0,0,0,0.38); line-height: 1.25; }
+</style>
+</head>
+<body>
+  <div class="screen">
+    <!-- 桌面图标 -->
+    <div class="desktop-icons">
+      <div class="dicon"><div class="g">💬</div><div class="l">聊天</div></div>
+      <div class="dicon"><div class="g">⚡</div><div class="l">任务</div></div>
+      <div class="dicon"><div class="g">💭</div><div class="l">记忆</div></div>
+      <div class="dicon"><div class="g">🗂</div><div class="l">文件</div></div>
+      <div class="dicon"><div class="g">📓</div><div class="l">笔记本</div></div>
+      <div class="dicon"><div class="g">💰</div><div class="l">记账</div></div>
+      <div class="dicon"><div class="g">💡</div><div class="l">开源雷达</div></div>
+      <div class="dicon"><div class="g">🪄</div><div class="l">应用工坊</div></div>
+    </div>
+
+    <!-- 聊天:对话造记账应用 -->
+    <div class="win win-chat">
+      <div class="tbar"><span class="ic">💬</span><span class="tt">聊天</span><span class="ctl min"></span><span class="ctl max"></span><span class="ctl cls"></span></div>
+      <div class="chat">
+        <div class="msgs">
+          <div class="b u">帮我做个记账本,记收入支出、看每月结余</div>
+          <div class="b a">好,我来建一个「记账」应用 —— 收入/支出录入 + 汇总卡片 + 明细表。</div>
+          <div class="tool"><span class="d"></span>建表 finance_transactions · 写入 server/apps/finance</div>
+          <div class="tool"><span class="d"></span>生成界面 ui/src/apps/finance · 注册到桌面</div>
+          <div class="b a">做好了,已经放到桌面上 👉 直接打开就能用。要加预算提醒吗?</div>
+        </div>
+        <div class="composer"><div class="cbox"><div class="ph">说点什么,或继续让它改…</div><div class="snd">↑</div></div></div>
+      </div>
+    </div>
+
+    <!-- 刚造好的记账应用 —— 存折拟物 -->
+    <div class="win win-app">
+      <div class="tbar"><span class="ic">💰</span><span class="tt">记账</span><span class="ctl min"></span><span class="ctl max"></span><span class="ctl cls"></span></div>
+      <div class="pb-bg">
+        <div class="pb">
+          <div class="pb-cover"><div class="stripe"></div></div>
+          <div class="pb-pages">
+            <div class="crease"></div>
+            <div class="pb-head">
+              <div class="pb-month"><span class="nav">◄</span>2026 年 5 月<span class="nav">►</span></div>
+              <div class="pb-sum">
+                <div class="cell"><span class="k">收入</span><span class="v in">+12,400</span></div>
+                <div class="cell"><span class="k">支出</span><span class="v out">-6,930</span></div>
+                <div class="cell"><span class="k">结余</span><span class="v bal">5,470</span></div>
+              </div>
+            </div>
+            <table class="pb-tbl">
+              <tr><th>日期</th><th>摘要</th><th class="r">支出</th><th class="r">存入</th><th class="r">余额</th></tr>
+              <tr><td>05-01</td><td>上月结转</td><td class="r"></td><td class="r"></td><td class="r bal">0</td></tr>
+              <tr><td>05-10</td><td>工资</td><td class="r"></td><td class="r in">8,000</td><td class="r bal">8,000</td></tr>
+              <tr><td>05-12</td><td>接的私活</td><td class="r"></td><td class="r in">4,400</td><td class="r bal">12,400</td></tr>
+              <tr><td>05-25</td><td>房租</td><td class="r out">4,200</td><td class="r"></td><td class="r bal">8,200</td></tr>
+              <tr><td>05-27</td><td>超市买菜</td><td class="r out">318</td><td class="r"></td><td class="r bal">7,882</td></tr>
+              <tr><td>05-28</td><td>水电网费</td><td class="r out">256</td><td class="r"></td><td class="r bal">7,626</td></tr>
+              <tr><td>05-30</td><td>和室友 AA 火锅</td><td class="r out">156</td><td class="r"></td><td class="r bal">7,470</td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 任务栏 -->
+    <div class="taskbar">
+      <div class="launch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></div>
+      <div class="tb-sep"></div>
+      <div class="tb-win active"><span class="i">💬</span>聊天</div>
+      <div class="tb-win active"><span class="i">💰</span>记账</div>
+      <div class="clock"><div class="t">14:08</div><div class="d">5/30</div></div>
+    </div>
+  </div>
+  <script>
+    function fit(){ var s=document.querySelector('.screen'); s.style.transform='scale('+Math.min(innerWidth/1600, innerHeight/900)+')'; }
+    addEventListener('resize', fit); fit();
+  </script>
+</body>
+</html>

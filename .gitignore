@@ -1,23 +1,17 @@
-# 宿主环境：持久事实、运行态与含密钥的环境配置。都不进 Git。
-var/
-run/
-etc/env.json
-
-# 可选的本地启动环境变量。
-.env
-.env.*
-!.env.example
-
-# 依赖与构建产物
 node_modules/
-*.tsbuildinfo
-dist/
-
-# 系统与编辑器文件
+gui/dist/
+gui2/dist/
+.aios/
 .DS_Store
 *.log
+/database/
+/files/
 
-# 评测用的 venv(有些题要 pytest)。跑 eval 前:
-#   python3 -m venv eval/.venv && eval/.venv/bin/pip install pytest
-eval/.venv/
-__pycache__/
+# Baked AGENTS.md (runtime; baked from language/<locale>/AGENTS.md)
+/AGENTS.md
+
+# Baked CLAUDE.md (runtime; baked from language/<locale>/CLAUDE.md)
+/CLAUDE.md
+
+# Baked APP.md tree (runtime; baked from language/<locale>/apps/<name>/APP.md)
+/apps/

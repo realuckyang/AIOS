@@ -1,0 +1,1473 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AIOS - Cybernetic Terminal Console</title>
+  <!-- Material Symbols & Retro Fonts -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=VT323&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg-black: #000000;
+      --bg-terminal: #070907;
+      --bg-active: #141f14;
+      
+      --color-amber: #39ff14; /* Matrix Green by default */
+      --color-amber-dim: #1e6b12;
+      --color-amber-glow: rgba(57, 255, 20, 0.25);
+      
+      --border-style: 1px solid var(--color-amber);
+      --font-mono: 'Share Tech Mono', 'VT323', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-black);
+      color: var(--color-amber);
+      font-family: var(--font-mono);
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+      font-size: 13px;
+      letter-spacing: 0.5px;
+      text-shadow: 0 0 4px rgba(57, 255, 20, 0.4);
+    }
+
+    /* Screen Scanline overlay */
+    body::before {
+      content: " ";
+      display: block;
+      position: fixed;
+      top: 0; left: 0; bottom: 0; right: 0;
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+      z-index: 9999;
+      background-size: 100% 4px, 6px 100%;
+      pointer-events: none;
+    }
+
+    #aios-container {
+      display: grid;
+      grid-template-columns: 80px 1fr;
+      height: 100vh;
+      width: 100vw;
+      border: 4px solid var(--color-amber-dim);
+      padding: 4px;
+    }
+
+    /* SWITCHER LEFT PANEL */
+    .switcher {
+      background-color: var(--bg-black);
+      border-right: 2px solid var(--color-amber-dim);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px 0;
+      justify-content: space-between;
+      user-select: none;
+    }
+
+    .switcher-top {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 24px;
+      width: 100%;
+    }
+
+    .os-logo {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--color-amber);
+      border: 2px solid var(--color-amber);
+      padding: 4px 6px;
+      text-align: center;
+      box-shadow: 0 0 10px var(--color-amber-glow);
+      margin-bottom: 20px;
+      animation: blink 1.5s infinite steps(2);
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+
+    .switcher-btn {
+      width: 60px;
+      height: 60px;
+      border: 1px solid var(--color-amber-dim);
+      background: transparent;
+      color: var(--color-amber-dim);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      transition: all 0.1s;
+    }
+
+    .switcher-btn span.material-symbols-outlined {
+      font-size: 24px;
+    }
+
+    .switcher-btn span.btn-label {
+      font-size: 9px;
+      text-transform: uppercase;
+    }
+
+    .switcher-btn:hover {
+      color: var(--color-amber);
+      background-color: rgba(57, 255, 20, 0.05);
+      border-color: var(--color-amber);
+      box-shadow: 0 0 8px var(--color-amber-glow);
+    }
+
+    .switcher-btn.active {
+      color: var(--color-amber);
+      background-color: var(--bg-active);
+      border-color: var(--color-amber);
+      box-shadow: inset 0 0 8px var(--color-amber-glow), 0 0 8px var(--color-amber-glow);
+    }
+
+    .status-monitor {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font-size: 9px;
+      color: var(--color-amber-dim);
+    }
+
+    .heartbeat {
+      font-size: 14px;
+      color: var(--color-amber);
+      animation: pulse 1s infinite alternate;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); opacity: 0.5; }
+      100% { transform: scale(1.1); opacity: 1; }
+    }
+
+    /* RIGHT WORKSPACE AREA */
+    .workspace {
+      background-color: var(--bg-terminal);
+      overflow: hidden;
+    }
+
+    .app-screen {
+      display: none;
+      width: 100%;
+      height: 100%;
+    }
+
+    .app-screen.active {
+      display: grid;
+    }
+
+    /* APP TEMPLATE */
+    .app-layout-sidebar {
+      grid-template-columns: 260px 1fr;
+      height: 100%;
+    }
+
+    .app-sidebar {
+      background-color: var(--bg-black);
+      border-right: 2px dashed var(--color-amber-dim);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+
+    .app-main {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    /* SIDEBAR CHAT LIST */
+    .sidebar-header {
+      padding: 16px;
+      border-bottom: 1px dashed var(--color-amber-dim);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .sidebar-title {
+      font-size: 12px;
+      font-weight: bold;
+      color: var(--color-amber-dim);
+    }
+
+    .btn-action-sm {
+      background: transparent;
+      border: 1px solid var(--color-amber-dim);
+      color: var(--color-amber);
+      padding: 4px 8px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      cursor: pointer;
+    }
+
+    .btn-action-sm:hover {
+      border-color: var(--color-amber);
+      box-shadow: 0 0 6px var(--color-amber-glow);
+    }
+
+    .session-list {
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .session-item {
+      padding: 10px;
+      border: 1px solid transparent;
+      cursor: pointer;
+    }
+
+    .session-item:hover {
+      border-color: var(--color-amber-dim);
+      background-color: rgba(57, 255, 20, 0.02);
+    }
+
+    .session-item.active {
+      border: 1px solid var(--color-amber);
+      background-color: var(--bg-active);
+      box-shadow: inset 0 0 4px var(--color-amber-glow);
+    }
+
+    .session-title {
+      font-weight: bold;
+      margin-bottom: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .session-meta {
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      color: var(--color-amber-dim);
+    }
+
+    /* Active variables console */
+    .sidebar-variables {
+      margin-top: auto;
+      border-top: 1px dashed var(--color-amber-dim);
+      padding: 12px;
+      background-color: rgba(0, 0, 0, 0.4);
+    }
+
+    .var-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      margin-bottom: 6px;
+    }
+
+    .var-lbl {
+      color: var(--color-amber-dim);
+    }
+
+    .var-val {
+      color: var(--color-amber);
+    }
+
+    /* CHAT PANEL */
+    .chat-header {
+      height: 48px;
+      border-bottom: 2px solid var(--color-amber-dim);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      background-color: var(--bg-black);
+    }
+
+    .active-model-badge {
+      font-size: 11px;
+      border: 1px solid var(--color-amber);
+      padding: 2px 8px;
+      background-color: var(--bg-active);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .chat-history {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .msg-block {
+      display: flex;
+      flex-direction: column;
+      border: 1px solid var(--color-amber-dim);
+      background-color: rgba(0, 0, 0, 0.3);
+      padding: 12px;
+    }
+
+    .msg-block.user {
+      border-left: 4px solid var(--color-amber);
+    }
+
+    .msg-block.assistant {
+      border-left: 4px dashed var(--color-amber-dim);
+    }
+
+    .msg-meta {
+      font-size: 10px;
+      color: var(--color-amber-dim);
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .thought-block {
+      border: 1px dotted var(--color-amber-dim);
+      padding: 8px;
+      margin-bottom: 10px;
+      background-color: rgba(0, 0, 0, 0.5);
+    }
+
+    .thought-title {
+      font-size: 10px;
+      color: var(--color-amber-dim);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-bottom: 4px;
+    }
+
+    .thought-text {
+      color: var(--color-amber-dim);
+      font-size: 11px;
+      display: none;
+    }
+
+    .thought-text.open {
+      display: block;
+    }
+
+    /* Terminal Tool Box */
+    .terminal-trace {
+      border: 1px solid var(--color-amber);
+      margin: 8px 0;
+    }
+
+    .terminal-trace-header {
+      background-color: var(--color-amber-dim);
+      color: var(--bg-black);
+      padding: 4px 8px;
+      font-size: 10px;
+      font-weight: bold;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .terminal-trace-body {
+      background-color: #000;
+      color: #39ff14;
+      padding: 8px;
+      font-size: 11px;
+      display: none;
+      white-space: pre-wrap;
+    }
+
+    .terminal-trace-body.open {
+      display: block;
+    }
+
+    /* Chat Input */
+    .chat-input-container {
+      padding: 16px;
+      background-color: var(--bg-black);
+      border-top: 2px solid var(--color-amber-dim);
+    }
+
+    .chat-input-wrapper {
+      border: 1px solid var(--color-amber);
+      background-color: var(--bg-terminal);
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .chat-textarea {
+      background: transparent;
+      border: none;
+      color: var(--color-amber);
+      font-family: var(--font-mono);
+      font-size: 13px;
+      resize: none;
+      height: 48px;
+      outline: none;
+    }
+
+    .chat-input-bottom {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .btn-send {
+      background-color: var(--color-amber);
+      color: var(--bg-black);
+      border: none;
+      padding: 6px 16px;
+      font-family: var(--font-mono);
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 0 6px var(--color-amber-glow);
+    }
+
+    .btn-send:hover {
+      background-color: #ffffff;
+      color: var(--bg-black);
+      box-shadow: 0 0 10px #ffffff;
+    }
+
+    /* ---------------------------------------------------- */
+    /* APP: TASKS */
+    /* ---------------------------------------------------- */
+    .task-layout {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      height: 100%;
+    }
+
+    .task-sidebar {
+      background-color: var(--bg-black);
+      border-right: 2px dashed var(--color-amber-dim);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .task-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .task-card {
+      border: 1px solid var(--color-amber-dim);
+      background-color: rgba(0, 0, 0, 0.4);
+      padding: 10px;
+      cursor: pointer;
+    }
+
+    .task-card:hover {
+      border-color: var(--color-amber);
+    }
+
+    .task-card.active {
+      border: 1px solid var(--color-amber);
+      background-color: var(--bg-active);
+      box-shadow: inset 0 0 6px var(--color-amber-glow);
+    }
+
+    .task-card-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 6px;
+      font-size: 10px;
+    }
+
+    .status-badge {
+      border: 1px solid var(--color-amber-dim);
+      padding: 1px 4px;
+      font-size: 9px;
+      text-transform: uppercase;
+    }
+
+    .status-badge.running {
+      color: var(--color-amber);
+      border-color: var(--color-amber);
+      animation: blink 1s infinite alternate;
+    }
+
+    .status-badge.done {
+      color: var(--color-amber-dim);
+      border-color: var(--color-amber-dim);
+    }
+
+    .task-title {
+      font-weight: bold;
+      margin-bottom: 6px;
+    }
+
+    .task-card-bottom {
+      display: flex;
+      justify-content: space-between;
+      font-size: 9px;
+      color: var(--color-amber-dim);
+    }
+
+    .task-detail {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+
+    .task-detail-header {
+      padding: 16px;
+      border-bottom: 2px solid var(--color-amber-dim);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background-color: var(--bg-black);
+    }
+
+    .btn-abort {
+      background-color: transparent;
+      border: 1px solid #ff1744;
+      color: #ff1744;
+      padding: 4px 12px;
+      cursor: pointer;
+      font-family: var(--font-mono);
+    }
+
+    .btn-abort:hover {
+      background-color: #ff1744;
+      color: #000;
+      box-shadow: 0 0 8px rgba(255, 23, 68, 0.4);
+    }
+
+    .task-meta-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      padding: 12px 16px;
+      border-bottom: 1px dashed var(--color-amber-dim);
+      background-color: rgba(0, 0, 0, 0.2);
+    }
+
+    .meta-item {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .meta-lbl {
+      font-size: 9px;
+      color: var(--color-amber-dim);
+    }
+
+    .meta-val {
+      font-size: 11px;
+    }
+
+    .terminal-console {
+      flex: 1;
+      margin: 16px;
+      border: 1px solid var(--color-amber);
+      background-color: var(--bg-black);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .terminal-c-header {
+      background-color: var(--color-amber-dim);
+      color: var(--bg-black);
+      padding: 6px 12px;
+      font-size: 10px;
+      font-weight: bold;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .terminal-c-body {
+      flex: 1;
+      padding: 12px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--color-amber);
+      overflow-y: auto;
+      line-height: 1.5;
+    }
+
+    .term-line {
+      margin-bottom: 4px;
+    }
+
+    .term-line.cmd::before {
+      content: "$ ";
+      color: var(--color-amber-dim);
+    }
+
+    /* ---------------------------------------------------- */
+    /* APP: MEMORY */
+    /* ---------------------------------------------------- */
+    .memory-layout {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      padding: 16px;
+    }
+
+    .memory-toolbar {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      gap: 12px;
+    }
+
+    .memory-tabs {
+      display: flex;
+      border: 1px solid var(--color-amber-dim);
+    }
+
+    .memory-tab {
+      background: transparent;
+      border: none;
+      color: var(--color-amber-dim);
+      padding: 6px 16px;
+      font-family: var(--font-mono);
+      cursor: pointer;
+    }
+
+    .memory-tab.active {
+      background-color: var(--color-amber-dim);
+      color: var(--bg-black);
+    }
+
+    .search-input {
+      background-color: var(--bg-black);
+      border: 1px solid var(--color-amber-dim);
+      color: var(--color-amber);
+      padding: 6px 12px;
+      font-family: var(--font-mono);
+      outline: none;
+      width: 260px;
+    }
+
+    .search-input:focus {
+      border-color: var(--color-amber);
+      box-shadow: 0 0 6px var(--color-amber-glow);
+    }
+
+    .table-container {
+      flex: 1;
+      border: 1px solid var(--color-amber-dim);
+      overflow-y: auto;
+      background-color: var(--bg-black);
+    }
+
+    .mem-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 11px;
+    }
+
+    .mem-table th {
+      background-color: rgba(57, 255, 20, 0.05);
+      border-bottom: 2px solid var(--color-amber-dim);
+      padding: 10px;
+      color: var(--color-amber-dim);
+    }
+
+    .mem-table td {
+      border-bottom: 1px dashed var(--color-amber-dim);
+      padding: 10px;
+    }
+
+    .mem-table tr:hover td {
+      background-color: rgba(57, 255, 20, 0.02);
+    }
+
+    .vis-badge {
+      border: 1px solid var(--color-amber-dim);
+      padding: 1px 4px;
+      font-size: 9px;
+    }
+
+    .vis-badge.private {
+      color: #ff1744;
+      border-color: #ff1744;
+    }
+
+    /* ---------------------------------------------------- */
+    /* APP: SETTINGS */
+    /* ---------------------------------------------------- */
+    .settings-layout {
+      display: grid;
+      grid-template-columns: 180px 1fr;
+      height: 100%;
+    }
+
+    .settings-nav {
+      background-color: var(--bg-black);
+      border-right: 2px dashed var(--color-amber-dim);
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .settings-nav-item {
+      padding: 8px;
+      border: 1px solid transparent;
+      cursor: pointer;
+      color: var(--color-amber-dim);
+    }
+
+    .settings-nav-item:hover {
+      border-color: var(--color-amber-dim);
+      color: var(--color-amber);
+    }
+
+    .settings-nav-item.active {
+      border: 1px solid var(--color-amber);
+      background-color: var(--bg-active);
+      color: var(--color-amber);
+    }
+
+    .settings-main {
+      padding: 24px;
+      overflow-y: auto;
+      max-width: 720px;
+    }
+
+    .section-title {
+      font-size: 13px;
+      font-weight: bold;
+      border-bottom: 1px solid var(--color-amber-dim);
+      padding-bottom: 6px;
+      margin-bottom: 16px;
+      text-transform: uppercase;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .form-lbl {
+      font-size: 10px;
+      color: var(--color-amber-dim);
+    }
+
+    .form-val-input {
+      background-color: var(--bg-black);
+      border: 1px solid var(--color-amber-dim);
+      color: var(--color-amber);
+      padding: 8px;
+      font-family: var(--font-mono);
+      outline: none;
+    }
+
+    .form-val-input:focus {
+      border-color: var(--color-amber);
+      box-shadow: 0 0 6px var(--color-amber-glow);
+    }
+
+    .sys-switch-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px;
+      border: 1px dashed var(--color-amber-dim);
+      margin-bottom: 8px;
+    }
+
+    .checkbox-cyber {
+      cursor: pointer;
+    }
+
+    /* resource cards */
+    .res-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .res-box {
+      border: 1px solid var(--color-amber-dim);
+      padding: 10px;
+    }
+
+    .res-title {
+      font-size: 9px;
+      color: var(--color-amber-dim);
+      margin-bottom: 6px;
+    }
+
+    .res-meter {
+      height: 4px;
+      background-color: rgba(57, 255, 20, 0.1);
+      border: 1px solid var(--color-amber-dim);
+      position: relative;
+    }
+
+    .res-fill {
+      height: 100%;
+      background-color: var(--color-amber);
+      box-shadow: 0 0 4px var(--color-amber);
+    }
+
+    /* ---------------------------------------------------- */
+    /* RESPONSIVE DESIGN (MOBILE DOCK) */
+    /* ---------------------------------------------------- */
+    @media (max-width: 768px) {
+      #aios-container {
+        grid-template-columns: 1fr;
+        grid-template-rows: 1fr 60px;
+      }
+
+      .switcher {
+        grid-row: 2;
+        border-right: none;
+        border-top: 2px solid var(--color-amber-dim);
+        flex-direction: row;
+        padding: 0 8px;
+        justify-content: space-around;
+      }
+
+      .switcher-top {
+        flex-direction: row;
+        justify-content: space-around;
+        gap: 0;
+      }
+
+      .os-logo, .status-monitor {
+        display: none;
+      }
+
+      .switcher-btn {
+        width: 55px;
+        height: 48px;
+        border: 1px solid var(--color-amber-dim);
+      }
+
+      .app-layout-sidebar, .task-layout, .settings-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .app-sidebar, .task-sidebar, .settings-nav {
+        display: none;
+      }
+
+      .task-meta-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 6px;
+      }
+
+      .terminal-console {
+        margin: 8px;
+      }
+
+      .settings-main {
+        padding: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="aios-container">
+    
+    <!-- LEFT RETRO SWITCHER -->
+    <nav class="switcher">
+      <div class="switcher-top">
+        <div class="os-logo">AIOS</div>
+        
+        <button class="switcher-btn active" data-target="app-chat">
+          <span class="material-symbols-outlined">terminal</span>
+          <span class="btn-label">CHAT</span>
+        </button>
+
+        <button class="switcher-btn" data-target="app-tasks">
+          <span class="material-symbols-outlined">task_alt</span>
+          <span class="btn-label">TASKS</span>
+        </button>
+
+        <button class="switcher-btn" data-target="app-memory">
+          <span class="material-symbols-outlined">psychology</span>
+          <span class="btn-label">MEMORY</span>
+        </button>
+
+        <button class="switcher-btn" data-target="app-settings">
+          <span class="material-symbols-outlined">settings</span>
+          <span class="btn-label">SETTINGS</span>
+        </button>
+      </div>
+
+      <div class="switcher-bottom">
+        <div class="status-monitor">
+          <span class="heartbeat">♥</span>
+          <span>SYS: OK</span>
+        </div>
+      </div>
+    </nav>
+
+    <!-- RIGHT OS WORKSPACE -->
+    <main class="workspace">
+
+      <!-- APP 1: CHAT / CONSOLE -->
+      <section id="app-chat" class="app-screen app-layout-sidebar active">
+        <aside class="app-sidebar">
+          <div class="sidebar-header">
+            <span class="sidebar-title">SESSIONS</span>
+            <button class="btn-action-sm" onclick="addNewChat()">+ NEW</button>
+          </div>
+          <div class="session-list" id="chat-sessions">
+            <div class="session-item active" onclick="switchSession(this, 'Tomato Timer')">
+              <div class="session-title">POMODORO BUILD CORE</div>
+              <div class="session-meta">
+                <span>GEMINI-2.5</span>
+                <span>3m</span>
+              </div>
+            </div>
+            <div class="session-item" onclick="switchSession(this, 'Clean DB')">
+              <div class="session-title">CLEAN OLD SQLITE SCHEMA</div>
+              <div class="session-meta">
+                <span>DEEPSEEK-R1</span>
+                <span>1h</span>
+              </div>
+            </div>
+          </div>
+          <div class="sidebar-variables">
+            <div class="var-row">
+              <span class="var-lbl">LLM STATUS</span>
+              <span class="var-val">ACTIVE</span>
+            </div>
+            <div class="var-row">
+              <span class="var-lbl">PORT</span>
+              <span class="var-val">9502</span>
+            </div>
+            <div class="var-row">
+              <span class="var-lbl">CONV_ROUNDS</span>
+              <span class="var-val">12</span>
+            </div>
+          </div>
+        </aside>
+
+        <div class="app-main">
+          <div class="chat-header">
+            <div style="font-weight: bold;" id="current-chat-title">POMODORO BUILD CORE</div>
+            <span class="active-model-badge">GEMINI-2.5-PRO</span>
+          </div>
+
+          <div class="chat-history" id="chat-history-log">
+            <div class="msg-block user">
+              <div class="msg-meta">
+                <span>USR@AIOS-TERMINAL</span>
+                <span>14:38:02</span>
+              </div>
+              <div>
+                帮我做一个番茄钟，左边大字显示倒计时，右边记录今天完成的几个 25 分钟。要求直接生成前端 Vue 组件。
+              </div>
+            </div>
+
+            <div class="msg-block assistant">
+              <div class="msg-meta">
+                <span>AGT@AIOS-KERNEL</span>
+                <span>14:38:15</span>
+              </div>
+              <div>
+                <div class="thought-block">
+                  <div class="thought-title" onclick="toggleTrace(this)">
+                    [▶ REASONING LOG]
+                  </div>
+                  <div class="thought-text">
+                    - Create a Vue component under tomato-timer.<br>
+                    - Write layout code: Left panel count down, right panel history array.<br>
+                    - Run build process.
+                  </div>
+                </div>
+
+                <div class="terminal-trace">
+                  <div class="terminal-trace-header" onclick="toggleConsole(this)">
+                    <span>$ shell | mkdir -p ui/src/apps/tomato-timer</span>
+                    <span>[+]</span>
+                  </div>
+                  <div class="terminal-trace-body">
+(no output)
+                  </div>
+                </div>
+
+                我已经在本地沙盒生成了番茄钟组件，包含大字左侧倒计时与右侧历史工作记录统计。
+              </div>
+            </div>
+          </div>
+
+          <div class="chat-input-container">
+            <div class="chat-input-wrapper">
+              <textarea class="chat-textarea" id="chat-input-box" placeholder="CMD ENTER TO RUN..." onkeydown="handleChatSubmit(event)"></textarea>
+              <div class="chat-input-bottom">
+                <span style="font-size: 10px; color:var(--color-amber-dim);">SHELL CAPABLE MODE</span>
+                <button class="btn-send" onclick="sendChatMessage()">RUN PROCESS</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- APP 2: TASKS -->
+      <section id="app-tasks" class="app-screen task-layout">
+        <aside class="task-sidebar">
+          <div class="sidebar-header">
+            <span class="sidebar-title">ACTIVE TASKS</span>
+          </div>
+          <div class="task-list">
+            <div class="task-card active" onclick="switchTask(this, 'Tomato Timer')">
+              <div class="task-card-header">
+                <span>ID: #1088</span>
+                <span class="status-badge running">RUNNING</span>
+              </div>
+              <div class="task-title">POMODORO COMPILER PROCESS</div>
+              <div class="task-card-bottom">
+                <span>VITE BUILD</span>
+                <span>14:40:02</span>
+              </div>
+            </div>
+            <div class="task-card" onclick="switchTask(this, 'SQLite Vacuum')">
+              <div class="task-card-header">
+                <span>ID: #1087</span>
+                <span class="status-badge done">DONE</span>
+              </div>
+              <div class="task-title">SQLITE VACUUM OPTIMIZATION</div>
+              <div class="task-card-bottom">
+                <span>VACUUM</span>
+                <span>13:12:45</span>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        <div class="task-detail">
+          <div class="task-detail-header">
+            <div style="font-weight: bold; font-size: 14px;" id="active-task-title">POMODORO COMPILER PROCESS</div>
+            <button class="btn-abort" id="abort-btn" onclick="abortActiveTask()">TERMINATE [SIGINT]</button>
+          </div>
+
+          <div class="task-meta-grid">
+            <div class="meta-item">
+              <span class="meta-lbl">TASK ID</span>
+              <span class="meta-val" id="active-task-id">#1088</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-lbl">MODE</span>
+              <span class="meta-val">AGENT LOOP</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-lbl">PID</span>
+              <span class="meta-val">84392</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-lbl">TIME</span>
+              <span class="meta-val">14:40:02</span>
+            </div>
+          </div>
+
+          <div class="terminal-console">
+            <div class="terminal-c-header">
+              <span>OUTPUT LOG MONITOR</span>
+              <span>PID: 84392</span>
+            </div>
+            <div class="terminal-c-body" id="task-terminal-logs">
+              <div class="term-line cmd">vite build --config ui/vite.config.js ui</div>
+              <div class="term-line">vite v7.3.1 building for production...</div>
+              <div class="term-line">✓ 56 modules transformed.</div>
+              <div class="term-line">dist/index.html                     0.45 kB</div>
+              <div class="term-line">dist/assets/index-D78s92.js         385.20 kB</div>
+              <div class="term-line">✓ built in 1.48s</div>
+              <div class="term-line cmd" style="margin-top: 10px;">cp -r ui/dist/ ~/.aios/app/ui_build/</div>
+              <div class="term-line">Syncing assets to dynamic runtime folder...</div>
+              <div class="term-line" style="color:var(--color-amber-dim);">[DAEMON] Waiting for local file mutations...</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- APP 3: MEMORY -->
+      <section id="app-memory" class="app-screen memory-layout">
+        <div class="memory-toolbar">
+          <div class="memory-tabs">
+            <button class="memory-tab active" onclick="filterMemory('all', this)">ALL</button>
+            <button class="memory-tab" onclick="filterMemory('private', this)">PRIVATE</button>
+            <button class="memory-tab" onclick="filterMemory('workspace', this)">WORKSPACE</button>
+          </div>
+          <input type="text" class="search-input" id="memory-search" placeholder="SEARCH QUERY..." oninput="searchMemory()">
+        </div>
+
+        <div class="table-container">
+          <table class="mem-table">
+            <thead>
+              <tr>
+                <th style="width: 80px;">ID</th>
+                <th style="width: 100px;">SECURITY</th>
+                <th style="width: 120px;">KEY_TAG</th>
+                <th>KEY_VALUE</th>
+                <th style="width: 100px;">ORIGIN</th>
+                <th style="width: 100px;">TIME</th>
+              </tr>
+            </thead>
+            <tbody id="memory-tbody">
+              <tr data-vis="private">
+                <td>#M081</td>
+                <td><span class="vis-badge private">PRIVATE</span></td>
+                <td>user_settings</td>
+                <td>Auto-switch system environment variables to night mode on 22:00.</td>
+                <td>Chat #12</td>
+                <td>14:20:12</td>
+              </tr>
+              <tr data-vis="workspace">
+                <td>#M080</td>
+                <td><span class="vis-badge">WORKSPACE</span></td>
+                <td>db_config</td>
+                <td>Database file path registered: database/aios.db.</td>
+                <td>Init</td>
+                <td>12:00:45</td>
+              </tr>
+              <tr data-vis="workspace">
+                <td>#M077</td>
+                <td><span class="vis-badge">WORKSPACE</span></td>
+                <td>framework_rules</td>
+                <td>Do not write absolute paths or user tokens to git version control.</td>
+                <td>AGENTS.md</td>
+                <td>2 days ago</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- APP 4: SETTINGS -->
+      <section id="app-settings" class="app-screen settings-layout">
+        <aside class="settings-nav">
+          <div class="settings-nav-item active" data-tab="tab-model">LLM_ENGINE</div>
+          <div class="settings-nav-item" data-tab="tab-sandbox">SANDBOX_CTRL</div>
+          <div class="settings-nav-item" data-tab="tab-resource">RESOURCES</div>
+        </aside>
+
+        <div class="settings-main">
+          <!-- TAB 1 -->
+          <div id="tab-model" class="tab-panel-section">
+            <div style="margin-bottom: 24px;">
+              <h3 class="section-title">PROVIDER ENGINE</h3>
+              <div class="form-group">
+                <label class="form-lbl">LLM PROVIDER</label>
+                <input type="text" class="form-val-input" value="gemini-2.5-pro">
+              </div>
+              <div class="form-group">
+                <label class="form-lbl">API ENDPOINT</label>
+                <input type="text" class="form-val-input" value="https://api.google.com/gemini/v1">
+              </div>
+            </div>
+
+            <div style="margin-bottom: 24px;">
+              <h3 class="section-title">LOOP CONSTRAINTS</h3>
+              <div class="sys-switch-row">
+                <div>
+                  <div>LIMIT_AGENT_RECURSION</div>
+                  <div style="font-size:9px; color:var(--color-amber-dim);">Abort process if call loop exceeds index.</div>
+                </div>
+                <input type="checkbox" class="checkbox-cyber" checked>
+              </div>
+              <div class="form-group">
+                <label class="form-lbl">MAX ITERATION ROUNDS</label>
+                <input type="number" class="form-val-input" value="50">
+              </div>
+            </div>
+
+            <button class="btn-send" onclick="alert('SETTINGS SYNCED TO SQLITE')">SAVE CONFIG</button>
+          </div>
+
+          <!-- TAB 2 -->
+          <div id="tab-sandbox" class="tab-panel-section" style="display: none;">
+            <div style="margin-bottom: 24px;">
+              <h3 class="section-title">SANDBOX ISOLATION</h3>
+              <div class="sys-switch-row">
+                <div>
+                  <div>BLOCK_OUTBOUND_CURL</div>
+                  <div style="font-size:9px; color:var(--color-amber-dim);">Restrict shell calls to local subnets.</div>
+                </div>
+                <input type="checkbox" class="checkbox-cyber" checked>
+              </div>
+
+              <div class="form-group">
+                <label class="form-lbl">EXECUTION WHITE-LIST REGEX</label>
+                <input type="text" class="form-val-input" value="^(npm|git|node|cp|mkdir|rm -rf ui/dist).*">
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 3 -->
+          <div id="tab-resource" class="tab-panel-section" style="display: none;">
+            <div style="margin-bottom: 24px;">
+              <h3 class="section-title">RESOURCE METRICS</h3>
+              <div class="res-grid">
+                <div class="res-box">
+                  <div class="res-title">CPU CONTAINER LOAD</div>
+                  <div class="res-meter"><div class="res-fill" style="width: 42%;"></div></div>
+                </div>
+                <div class="res-box">
+                  <div class="res-title">RAM MEMORY ALLOCATION</div>
+                  <div class="res-meter"><div class="res-fill" style="width: 72%;"></div></div>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-lbl">DATABASE SIZE</label>
+                <input type="text" class="form-val-input" value="12.4 MB (database/aios.db)" readonly>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+  </div>
+
+  <script>
+    // App Switcher Navigation Logic
+    const switcherButtons = document.querySelectorAll('.switcher-btn');
+    const appScreens = document.querySelectorAll('.app-screen');
+
+    switcherButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        switcherButtons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        const targetId = btn.getAttribute('data-target');
+        appScreens.forEach(screen => {
+          screen.classList.remove('active');
+          if (screen.id === targetId) {
+            screen.classList.add('active');
+          }
+        });
+      });
+    });
+
+    // Toggle Collapsible elements
+    function toggleTrace(header) {
+      const content = header.nextElementSibling;
+      if (content.style.display === 'block') {
+        content.style.display = 'none';
+      } else {
+        content.style.display = 'block';
+      }
+    }
+
+    function toggleConsole(header) {
+      const content = header.nextElementSibling;
+      if (content.style.display === 'block') {
+        content.style.display = 'none';
+      } else {
+        content.style.display = 'block';
+      }
+    }
+
+    // Interactive Chat Simulation
+    function handleChatSubmit(event) {
+      if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        sendChatMessage();
+      }
+    }
+
+    function sendChatMessage() {
+      const inputBox = document.getElementById('chat-input-box');
+      const text = inputBox.value.trim();
+      if (!text) return;
+
+      const history = document.getElementById('chat-history-log');
+
+      // Append User Message
+      const userMsg = document.createElement('div');
+      userMsg.className = 'msg-block user';
+      const time = new Date().toTimeString().split(' ')[0];
+      userMsg.innerHTML = `
+        <div class="msg-meta">
+          <span>USR@AIOS-TERMINAL</span>
+          <span>${time}</span>
+        </div>
+        <div>${text}</div>
+      `;
+      history.appendChild(userMsg);
+      inputBox.value = '';
+      history.scrollTop = history.scrollHeight;
+
+      // Simulate Assistant Reply + shell execution
+      setTimeout(() => {
+        const assistantMsg = document.createElement('div');
+        assistantMsg.className = 'msg-block assistant';
+        assistantMsg.innerHTML = `
+          <div class="msg-meta">
+            <span>AGT@AIOS-KERNEL</span>
+            <span>${new Date().toTimeString().split(' ')[0]}</span>
+          </div>
+          <div>
+            <div class="thought-block">
+              <div class="thought-title" onclick="toggleTrace(this)">
+                [▶ REASONING LOG]
+              </div>
+              <div class="thought-text" style="display:block">
+                - Analysis custom user directive: "${text}"<br>
+                - Trigger local terminal echo test.
+              </div>
+            </div>
+            <div class="terminal-trace">
+              <div class="terminal-trace-header" onclick="toggleConsole(this)">
+                <span>$ shell | echo "Execute sandbox process..."</span>
+                <span>[-]</span>
+              </div>
+              <div class="terminal-trace-body" style="display:block">
+Execute sandbox process... Success.
+              </div>
+            </div>
+            指令完成。输出流状态：SUCCESS。
+          </div>
+        `;
+        history.appendChild(assistantMsg);
+        history.scrollTop = history.scrollHeight;
+      }, 1000);
+    }
+
+    // Switch between chat sessions
+    function switchSession(item, title) {
+      document.querySelectorAll('#chat-sessions .session-item').forEach(i => i.classList.remove('active'));
+      item.classList.add('active');
+      document.getElementById('current-chat-title').innerText = title.toUpperCase();
+    }
+
+    // Switch tasks on sidebar
+    function switchTask(item, taskName) {
+      document.querySelectorAll('.task-card').forEach(c => c.classList.remove('active'));
+      item.classList.add('active');
+
+      const titleNode = document.getElementById('active-task-title');
+      const idNode = document.getElementById('active-task-id');
+      const logBody = document.getElementById('task-terminal-logs');
+      const abortBtn = document.getElementById('abort-btn');
+
+      titleNode.innerText = taskName.toUpperCase();
+
+      if (taskName.includes('Tomato') || taskName.includes('POMODORO')) {
+        idNode.innerText = '#1088';
+        abortBtn.style.display = 'block';
+        logBody.innerHTML = `
+          <div class="term-line cmd">vite build --config ui/vite.config.js ui</div>
+          <div class="term-line">vite v7.3.1 building for production...</div>
+          <div class="term-line">✓ 56 modules transformed.</div>
+          <div class="term-line">dist/index.html                     0.45 kB</div>
+          <div class="term-line">dist/assets/index-D78s92.js         385.20 kB</div>
+          <div class="term-line">✓ built in 1.48s</div>
+          <div class="term-line" style="color:var(--color-amber-dim);">[DAEMON] Waiting for local file mutations...</div>
+        `;
+      } else {
+        idNode.innerText = '#1087';
+        abortBtn.style.display = 'none';
+        logBody.innerHTML = `
+          <div class="term-line cmd">sqlite3 database/aios.db "VACUUM; ANALYZE;"</div>
+          <div class="term-line">Packing disk pages... complete.</div>
+          <div class="term-line" style="color:var(--color-amber-dim);">All indices analyzed successfully.</div>
+        `;
+      }
+    }
+
+    function abortActiveTask() {
+      if (confirm('TERMINATE PROCESS PID 84392?')) {
+        document.getElementById('abort-btn').style.display = 'none';
+        document.getElementById('task-terminal-logs').innerHTML += `
+          <div class="term-line" style="color:#ff1744; margin-top: 10px;">[SIGINT TERMINATED] process exited with signal 9</div>
+        `;
+      }
+    }
+
+    // Filter memory table
+    function filterMemory(type, button) {
+      document.querySelectorAll('.memory-tab').forEach(t => t.classList.remove('active'));
+      button.classList.add('active');
+
+      const rows = document.querySelectorAll('#memory-tbody tr');
+      rows.forEach(row => {
+        if (type === 'all') {
+          row.style.display = 'table-row';
+        } else {
+          row.getAttribute('data-vis') === type ? row.style.display = 'table-row' : row.style.display = 'none';
+        }
+      });
+    }
+
+    // Search memories
+    function searchMemory() {
+      const query = document.getElementById('memory-search').value.toLowerCase();
+      const rows = document.querySelectorAll('#memory-tbody tr');
+      rows.forEach(row => {
+        const text = row.innerText.toLowerCase();
+        row.style.display = text.includes(query) ? 'table-row' : 'none';
+      });
+    }
+
+    // Settings tab navigation
+    const settingsNavItems = document.querySelectorAll('.settings-nav-item');
+    const tabPanels = document.querySelectorAll('.tab-panel-section');
+
+    settingsNavItems.forEach(item => {
+      item.addEventListener('click', () => {
+        settingsNavItems.forEach(i => i.classList.remove('active'));
+        item.classList.add('active');
+
+        const targetTab = item.getAttribute('data-tab');
+        tabPanels.forEach(panel => {
+          if (panel.id === targetTab) {
+            panel.style.display = 'block';
+          } else {
+            panel.style.display = 'none';
+          }
+        });
+      });
+    });
+
+    // Add session simulator
+    function addNewChat() {
+      const title = prompt('NEW SESSION NAME:');
+      if (!title) return;
+      const list = document.getElementById('chat-sessions');
+      const item = document.createElement('div');
+      item.className = 'session-item active';
+      item.onclick = function() { switchSession(this, title); };
+      item.innerHTML = `
+        <div class="session-title">${title.toUpperCase()}</div>
+        <div class="session-meta">
+          <span>GEMINI-2.5</span>
+          <span>Just now</span>
+        </div>
+      `;
+      document.querySelectorAll('#chat-sessions .session-item').forEach(i => i.classList.remove('active'));
+      list.insertBefore(item, list.firstChild);
+      switchSession(item, title);
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,37 @@
+{
+  "memory_tab_all": "All",
+  "memory_tab_pinned": "Pinned",
+  "memory_tab_enabled": "Active",
+  "memory_tab_disabled": "Inactive",
+
+  "memory_create": "New memory",
+  "memory_create_first": "Write your first memory",
+  "memory_edit_title": "Edit memory",
+  "memory_new_title": "New memory",
+  "memory_save": "Save",
+  "memory_saving": "Saving…",
+  "memory_delete": "Delete",
+
+  "memory_field_title": "Title",
+  "memory_field_desc": "Note",
+  "memory_field_content": "Content",
+  "memory_title_placeholder": "Name it something memorable",
+  "memory_desc_placeholder": "A line or two of description (optional)",
+  "memory_content_placeholder": "Something you want the AI to always remember…",
+  "memory_desc_hint": "Hidden from AI, only for your sorting",
+  "memory_content_hint": "Active memories are merged into the system prompt",
+  "memory_char_unit": "chars",
+
+  "memory_enabled_label": "Active",
+  "memory_disabled_label": "Inactive",
+  "memory_pinned": "Pinned",
+
+  "memory_empty_title": "Empty memory book",
+  "memory_empty_desc": "Write down what you'd like the AI to keep in mind",
+  "memory_filter_empty": "Nothing here in this filter",
+
+  "memory_delete_confirm_prefix": "Delete \"",
+  "memory_delete_confirm_suffix": "\"? This cannot be undone.",
+
+  "common_cancel": "Cancel"
+}
